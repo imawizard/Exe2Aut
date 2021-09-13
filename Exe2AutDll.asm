@@ -23,7 +23,8 @@ section '.code' code readable executable
 	push	_gclw
 	push	eax
 	call	[GetProcAddress]
-	push	5
+	call	.size
+	push	ecx
 	push	MyGetCommandLineW
 	push	eax
 	call	DetourFunc
@@ -31,6 +32,20 @@ section '.code' code readable executable
     .fin:
 	mov	eax,TRUE
 	retn	0Ch
+    .size:
+	push	eax
+	xchg	eax,edx
+	xor	ecx,ecx
+      .loop:
+	push	edx
+	call	mlde32
+	add	esp,4
+	add	ecx,eax
+	add	edx,eax
+	cmp	ecx,5
+	jb	.loop
+	pop	eax
+	retn
 
   MyGetCommandLineW:
 	mov	eax,[esp]
@@ -580,6 +595,7 @@ section '.code' code readable executable
 	push	0
 	call	[ExitProcess]
 
+	include 'mlde32.inc'
 	include 'misc.inc'
 
 section '.data' data readable writeable
