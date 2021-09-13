@@ -257,6 +257,62 @@ section '.code' code readable executable
 	push	eax
 	call	DetourFunc
     .fin:
+	mov	eax,[esp+8]
+	push	_size_open2
+	push	_mask_open2
+	push	_ptrn_open2
+	push	8000h
+	push	eax
+	call	RFindPattern
+	test	eax,eax
+	jnz	.try
+	mov	eax,[esp+8]
+	push	_size_open
+	push	_mask_open
+	push	_ptrn_open
+	push	4D000h
+	push	eax
+	call	RFindPattern
+	test	eax,eax
+	jnz	.try
+	mov	[file_err],1
+	jmp	.done
+    .try:
+	mov	[EXEArc_Open],eax
+	mov	eax,[esp+8]
+	push	ebx esi edi
+	push	.catch
+	push	dword [fs:0]
+	mov	[fs:0],esp
+	push	_size_extract
+	push	_mask_extract
+	push	_ptrn_extract
+	push	3D000h
+	push	eax
+	call	FindPattern
+	jmp	.finally
+      .catch:
+	mov	esp,[esp+8]
+	xor	eax,eax
+      .finally:
+	pop	dword [fs:0]
+	add	esp,4
+	pop	edi esi ebx
+	test	eax,eax
+	jnz	.done
+	mov	eax,[esp+8]
+	push	_size_extract
+	push	_mask_extract
+	push	_ptrn_extract
+	push	4D000h
+	push	eax
+	call	RFindPattern
+	mov	[exearc_v2],1
+	test	eax,eax
+	jnz	.done
+	mov	[file_err],1
+    .done:
+	mov	[EXEArc_Extract],eax
 	pop	dword [fs:0]
 	add	esp,4
 	mov	[already],1
@@ -319,6 +375,30 @@ section '.code' code readable executable
 	push	eax
 	call	DetourFunc
     .fin:
+	mov	eax,[esp+8]
+	push	_size_open
+	push	_mask_open
+	push	_ptrn_open
+	push	12000h
+	push	eax
+	call	FindPattern
+	test	eax,eax
+	je	.error
+	mov	[EXEArc_Open],eax
+	mov	eax,[esp+8]
+	push	_size_extract
+	push	_mask_extract
+	push	_ptrn_extract
+	push	12000h
+	push	eax
+	call	FindPattern
+	test	eax,eax
+	je	.error
+	mov	[EXEArc_Extract],eax
+	jmp	.done
+    .error:
+	mov	[file_err],1
+    .done:
 	pop	dword [fs:0]
 	add	esp,4
 	mov	[already],1
@@ -463,6 +543,55 @@ section '.code' code readable executable
     .ignore:
 	retn
 
+  extract_file:
+	cmp	[file_err],1
+	je	.err
+	cmp	[oRead.m_fEXE],0
+	jnz	.opened
+	push	BUFFER_SIZE
+	push	buf
+	push	0
+	call	[GetModuleFileNameW]
+	push	edi
+	mov	edi,oRead
+	push	buf
+	call	[EXEArc_Open]
+	pop	edi
+    .opened:
+	push	esi edi
+	mov	edi,dummy
+	cmp	byte [edi+1],':'
+	jnz	.pathok
+	add	edi,3
+    .pathok:
+	push	edi
+	call	MakeDir
+	mov	esi,path
+	xchg	esi,edi
+	call	.unicode
+	mov	esi,dummy
+	mov	edi,buf
+	call	.unicode
+	push	ebx
+	mov	ebx,oRead
+	push	path
+	push	buf
+	cmp	[exearc_v2],1
+	je	.ebxptr
+	push	oRead
+      .ebxptr:
+	call	[EXEArc_Extract]
+	pop	ebx
+	pop	edi esi
+    .err:
+	retn
+    .unicode:
+	lodsb
+	stosw
+	test	al,al
+	jnz	.unicode
+	retn
+
   decompile:
 	and	[modrm],00111000b
 	shr	[modrm],3
@@ -586,6 +715,10 @@ section '.code' code readable executable
 	loop	.copy
 	pop	edi esi
 	mov	[dummy+ebx],cl
+	cmp	[file_mod],1
+	jnz	.empty
+	call	extract_file
+	mov	[file_mod],0
       .empty:
 	mov	al,[esi-1]
 	call	.modify
@@ -617,7 +750,21 @@ section '.code' code readable executable
 	call	[CharLower]
 	pop	eax
 	call	capitalize
+	cmp	al,31h
+	jnz	.other
+	push	eax
+	push	_FileInstall
+	push	dummy
+	call	[lstrcmp]
+	mov	ecx,eax
+	pop	eax
+	test	ecx,ecx
+	jnz	.other
+	mov	[file_mod],1
+	jmp	.done
+      .other:
       .dontmodify:
+      .done:
 	retn
       .string:
 	mov	ecx,2
@@ -1025,6 +1172,16 @@ section '.data' data readable writeable
   _modrm_3_2_8_0  =  4
   _count_3_2_8_0  =  7
   ;=====================================================================================
+  _ptrn_open	db 055h,08Bh,0ECh,083h,0E4h,0F8h,081h,0ECh,000h,001h,000h,000h,053h,056h
+  _ptrn_open2	db 055h,08Bh,0ECh,083h,0E4h,0F8h,081h,0ECh,000h,001h,000h,000h,056h,068h
+  _ptrn_extract db 055h,08Bh,0ECh,083h,0E4h,0F8h,0B8h,000h,000h,001h,000h,0E8h
+  _mask_open	db 5,3,8,1,9,8,3,7,6,1,3,2,1,4	;'xxxxxxxx.xxxxx'
+  _size_open	=  $-_mask_open
+  _mask_open2	db 9,8,3,8,1,5,3,2,6,7,3,7,9,2	;'xxxxxxxx.xxxxx'
+  _size_open2	=  $-_mask_open2
+  _mask_extract db 9,8,5,2,7,4,3,6,6,8,4,1	;'xxxxxxx..xxx'
+  _size_extract =  $-_mask_extract
+  ;=====================================================================================
 
   _corrupt db 13,10,'..corrupted [%Xh]',0
 
@@ -1047,6 +1204,17 @@ section '.data' data readable writeable
   _SystemParametersInfoA rd 1
   _CreateProcessW rd 1
   already rb 1
+
+  include 'exearc_read.inc'
+  oRead HS_EXEArc_Read
+  EXEArc_Open rd 1
+  EXEArc_Extract rd 1
+
+  file_err rb 1
+  file_mod rb 1
+  exearc_v2 rb 1
+  path rb MAX_PATH
+
   modrm rb 1
   newline rb 1
   unary_mod rb 1

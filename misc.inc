@@ -107,6 +107,31 @@ IsMutex:
 	mov	eax,ecx
 	retn	4
 
+MakeDir:
+	push	esi edi
+	mov	esi,[esp+0Ch]
+	mov	edi,[esp+0Ch]
+	push	esi
+	call	[lstrlen]
+	mov	ecx,eax
+    .loop:
+	mov	al,'\'
+	repnz	scasb
+	jnz	.fin
+	cmp	byte [edi-2],':'
+	je	.loop
+	mov	byte [edi-1],0
+	push	ecx
+	push	0
+	push	esi
+	call	[CreateDirectory]
+	pop	ecx
+	mov	byte [edi-1],'\'
+	jmp	.loop
+    .fin:
+	pop	edi esi
+	retn	4
+
 proc alloc_base address
   local mbi:MEMORY_BASIC_INFORMATION
      lea	eax,[mbi]
