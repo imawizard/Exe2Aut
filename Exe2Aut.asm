@@ -4,9 +4,37 @@ entry start
 
 include 'win32a.inc'
 
+ERROR_ALREADY_EXISTS = 0B7h
+
 section '.code' code readable executable
 
   start:
+	push	_mutex
+	push	0
+	push	0
+	call	[CreateMutex]
+	call	[GetLastError]
+	cmp	eax,ERROR_ALREADY_EXISTS
+	je	.err
+	call	[GetCommandLineW]
+	push	argc
+	push	eax
+	call	[CommandLineToArgvW]
+	push	eax
+	cmp	[argc],1
+	je	.free
+	mov	eax,[eax+4]
+	push	_armswitch
+	push	eax
+	call	[lstrcmpiW]
+	jnz	.free
+	push	_armmutex
+	push	0
+	push	0
+	call	[CreateMutex]
+	mov	[mutex],eax
+    .free:
+	call	[LocalFree]
 	push	0
 	call	[GetModuleHandle]
 	push	0
@@ -15,12 +43,27 @@ section '.code' code readable executable
 	push	IDD_MAIN
 	push	eax
 	call	[DialogBoxParam]
+    .fin:
 	push	0
 	call	[ExitProcess]
+    .err:
+	push	MB_OK+MB_ICONINFORMATION+MB_SETFOREGROUND
+	push	_title
+	push	_already
+	push	0
+	call	[MessageBox]
+	push	_window
+	push	0
+	call	[FindWindow]
+	push	eax
+	call	[SetForegroundWindow]
+	jmp	.fin
 
 proc DialogProc hwnd,msg,wparam,lparam
 	cmp	[msg],WM_INITDIALOG
 	je	.wm_initdialog
+	cmp	[msg],WM_SYSCOMMAND
+	je	.wm_syscommand
 	cmp	[msg],WM_COMMAND
 	je	.wm_command
 	cmp	[msg],WM_SIZE
@@ -34,6 +77,25 @@ proc DialogProc hwnd,msg,wparam,lparam
 	xor	eax,eax
 	jmp	.fin
     .wm_initdialog:
+	push	0
+	push	[hwnd]
+	call	[GetSystemMenu]
+	mov	ebx,eax
+	push	0
+	push	0
+	push	MF_SEPARATOR
+	push	ebx
+	call	[AppendMenu]
+	mov	eax,MF_STRING
+	cmp	[mutex],0
+	je	.append
+	or	eax,MF_CHECKED
+      .append:
+	push	_armadillo
+	push	IDM_ARMDB
+	push	eax
+	push	ebx
+	call	[AppendMenu]
 	push	0
 	call	[GetModuleHandle]
 	push	0
@@ -64,6 +126,42 @@ proc DialogProc hwnd,msg,wparam,lparam
 	push	14
 	call	[CreateFont]
 	mov	[font],eax
+	jmp	.done
+    .wm_syscommand:
+	xor	eax,eax
+	cmp	[wparam],IDM_ARMDB
+	jnz	.fin
+	push	ebx
+	push	0
+	push	[hwnd]
+	call	[GetSystemMenu]
+	mov	ebx,eax
+	push	0
+	push	IDM_ARMDB
+	push	eax
+	call	[GetMenuState]
+	xor	eax,MF_CHECKED
+	push	eax
+	push	eax
+	push	IDM_ARMDB
+	push	ebx
+	call	[CheckMenuItem]
+	pop	eax
+	pop	ebx
+	test	eax,MF_CHECKED
+	je	.release
+	push	_armmutex
+	push	0
+	push	0
+	call	[CreateMutex]
+	mov	[mutex],eax
+	jmp	.done
+      .release:
+	push	[mutex]
+	call	[ReleaseMutex]
+	push	[mutex]
+	call	[CloseHandle]
+	and	[mutex],0
 	jmp	.done
     .wm_command:
 	push	IDC_RESULT
@@ -372,7 +470,7 @@ proc InjectDll pid,dll
 	test	eax,eax
 	je	.cleanup
 	mov	esi,eax
-	push	2000
+	push	-1
 	push	esi
 	call	[WaitForSingleObject]
 	sub	esp,4
@@ -405,11 +503,19 @@ endp
 
 section '.data' data readable writeable
 
+  WINDOW_TITLE equ 'Exe2Aut - AutoIt3 Decompiler'
+
   _courier db 'Courier New',0
   _output db 'Apparently, it didn''t work..',0
   _failed db 'Something went wrong..',0
   _title db 'Exe2Aut',0
   _error db 'Either it''s not a PE file or it''s corrupted!',0
+  _mutex db 'Exe2Autv3',0
+  _already db 'I''m already running!',0
+  _window db WINDOW_TITLE,0
+  _armadillo db 'Armadillo''s Debug-Blocker',0
+  _armswitch du '-armadillo',0
+  _armmutex db 'Exe2Autv3:Armadillo',0
 
   path rb 256
   pathdll rb 256
@@ -417,6 +523,8 @@ section '.data' data readable writeable
   _pi PROCESS_INFORMATION
   _si STARTUPINFO
 
+  mutex rd 1
+  argc rd 1
   font rd 1
 
 section '.idata' import data readable
@@ -430,6 +538,7 @@ section '.idata' import data readable
   include 'api\user32.inc'
 
   import shell32,\
+	 CommandLineToArgvW,'CommandLineToArgvW',\
 	 DragFinish,'DragFinish',\
 	 DragQueryFile,'DragQueryFileA'
 
@@ -444,6 +553,7 @@ section '.rsrc' resource data readable
   IDR_DLL    = 4
   IDD_MAIN   = 100
   IDC_RESULT = 101
+  IDM_ARMDB  = 102
 
   directory RT_ICON,icons,\
 	    RT_GROUP_ICON,group_icons,\
@@ -471,6 +581,6 @@ section '.rsrc' resource data readable
     file 'Exe2AutDll.dll'
   endres
 
-  dialog main_dialog,'Exe2Aut - AutoIt3 Decompiler',0,0,380,310,WS_OVERLAPPEDWINDOW+DS_CENTER,WS_EX_ACCEPTFILES
+  dialog main_dialog,WINDOW_TITLE,0,0,380,310,WS_OVERLAPPEDWINDOW+DS_CENTER,WS_EX_ACCEPTFILES
     dialogitem 'edit','',IDC_RESULT,0,0,0,0,WS_VISIBLE+ES_MULTILINE+WS_HSCROLL+WS_VSCROLL+ES_READONLY
   enddialog

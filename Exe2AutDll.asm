@@ -11,15 +11,32 @@ section '.code' code readable executable
   start:
 	cmp	byte [esp+8],DLL_PROCESS_ATTACH
 	jnz	.fin
-	push	dword [esp+4]
+	mov	eax,[esp+4]
+	mov	[hmodule],eax
+	push	eax
 	call	[DisableThreadLibraryCalls]
+	push	_loaded
+	push	0
+	push	0
+	call	[CreateMutex]
+	call	[GetLastError]
+	cmp	eax,ERROR_ALREADY_EXISTS
+	je	.decompile
+	push	_armadillo
+	push	0
+	push	0
+	call	[CreateMutex]
+	call	[GetLastError]
+	cmp	eax,ERROR_ALREADY_EXISTS
+	je	.armadillo
+    .decompile:
 	push	_kernelbase
 	call	[GetModuleHandle]
 	test	eax,eax
 	jnz	.already
 	push	_kernel32
 	call	[GetModuleHandle]
-    .already:
+      .already:
 	push	_gclw
 	push	eax
 	call	[GetProcAddress]
@@ -40,6 +57,23 @@ section '.code' code readable executable
 	push	eax
 	call	DetourFunc
 	mov	[_SystemParametersInfoA],eax
+	jmp	.fin
+    .armadillo:
+	push	_loaded
+	push	0
+	push	0
+	call	[CreateMutex]
+	push	_kernel32
+	call	[GetModuleHandle]
+	push	_cpw
+	push	eax
+	call	[GetProcAddress]
+	call	.size
+	push	ecx
+	push	MyCreateProcessW
+	push	eax
+	call	DetourFunc
+	mov	[_CreateProcessW],eax
     .fin:
 	mov	eax,TRUE
 	retn	0Ch
@@ -57,6 +91,27 @@ section '.code' code readable executable
 	jb	.loop
 	pop	eax
 	retn
+
+  MyCreateProcessW:
+	mov	ecx,10
+    .push:
+	push	dword [esp+28h]
+	loop	.push
+	call	[_CreateProcessW]
+	test	eax,eax
+	je	.fin
+	push	BUFFER_SIZE
+	push	dummy
+	push	[hmodule]
+	call	[GetModuleFileName]
+	mov	ecx,[esp+28h]
+	mov	ecx,[ecx+PROCESS_INFORMATION.dwProcessId]
+	push	dummy
+	push	ecx
+	call	InjectDll
+	mov	eax,1
+    .fin:
+	retn	28h
 
   filename:
 	push	esi edi
@@ -96,6 +151,14 @@ section '.code' code readable executable
 	retn
 
   MyGetCommandLineW:
+	push	_ws2_32
+	call	[GetModuleHandle]
+	push	eax
+	push	dword [esp+4]
+	call	alloc_base
+	pop	ecx
+	cmp	ecx,eax
+	je	.already
 	cmp	[already],1
 	je	.already
 	call	filename
@@ -209,6 +272,9 @@ section '.code' code readable executable
 	jmp	[_GetCommandLineW]
 
   MySystemParametersInfoA:
+	mov	eax,[esp]
+	cmp	word [eax-2],0D6FFh
+	jnz	.already
 	cmp	[already],1
 	je	.already
 	call	filename
@@ -793,9 +859,13 @@ section '.data' data readable writeable
 
   _kernel32 db 'kernel32.dll',0
   _user32 db 'user32.dll',0
+  _ws2_32 db 'ws2_32.dll',0
   _kernelbase db 'kernelbase.dll',0
   _gclw db 'GetCommandLineW',0
   _spia db 'SystemParametersInfoA',0
+  _cpw db 'CreateProcessW',0
+  _armadillo db 'Exe2Autv3:Armadillo',0
+  _loaded db 'Exe2Autv3:Armadillo_OK',0
 
   ;=====================================================================================
   ;     3_3_7_15
@@ -865,8 +935,10 @@ section '.data' data readable writeable
   _space db ' %s',0
   _eol db 13,10
 
+  hmodule rd 1
   _GetCommandLineW rd 1
   _SystemParametersInfoA rd 1
+  _CreateProcessW rd 1
   already rb 1
   modrm rb 1
   newline rb 1

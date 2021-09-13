@@ -1,4 +1,6 @@
 
+ERROR_ALREADY_EXISTS = 0B7h
+
 struct MEMORY_BASIC_INFORMATION
   BaseAddress	    dd ?
   AllocationBase    dd ?
@@ -91,6 +93,17 @@ RFindPattern:
 	pop	edi esi ebx
 	retn	14h
 
+proc alloc_base address
+  local mbi:MEMORY_BASIC_INFORMATION
+     lea	eax,[mbi]
+     push	sizeof.MEMORY_BASIC_INFORMATION
+     push	eax
+     push	[address]
+     call	[VirtualQuery]
+     mov	eax,[mbi.AllocationBase]
+     ret
+endp
+
 proc DetourFunc address,gateway,size
   local old:DWORD,mbi:MEMORY_BASIC_INFORMATION
 	push	ebx esi edi
@@ -151,6 +164,86 @@ proc DetourFunc address,gateway,size
 	push	[mbi.BaseAddress]
 	call	[VirtualProtect]
 	retn
+    .fin:
+	pop	edi esi ebx
+	ret
+endp
+
+proc InjectDll pid,dll
+	push	ebx esi edi
+	push	[pid]
+	push	0
+	push	PROCESS_ALL_ACCESS
+	call	[OpenProcess]
+	test	eax,eax
+	je	.err
+	mov	edi,eax
+	push	[dll]
+	call	[lstrlen]
+	lea	esi,[eax+1]
+	push	PAGE_EXECUTE_READWRITE
+	push	MEM_RESERVE+MEM_COMMIT
+	push	esi
+	push	0
+	push	edi
+	call	[VirtualAllocEx]
+	test	eax,eax
+	je	.close
+	mov	ebx,eax
+	push	0
+	push	esi
+	push	[dll]
+	push	ebx
+	push	edi
+	call	[WriteProcessMemory]
+	call	.kernel32
+	db 'kernel32',0
+      .kernel32:
+	call	[GetModuleHandle]
+	call	.loadlibrary
+	db 'LoadLibraryA',0
+      .loadlibrary:
+	push	eax
+	call	[GetProcAddress]
+	xor	ecx,ecx
+	push	ecx
+	push	ecx
+	push	ebx
+	push	eax
+	push	ecx
+	push	ecx
+	push	edi
+	call	[CreateRemoteThread]
+	xor	esi,esi
+	test	eax,eax
+	je	.cleanup
+	mov	esi,eax
+	push	-1
+	push	esi
+	call	[WaitForSingleObject]
+	sub	esp,4
+	push	esp
+	push	esi
+	call	[GetExitCodeThread]
+	push	esi
+	call	[CloseHandle]
+	mov	esi,[esp]
+	add	esp,4
+    .cleanup:
+	push	MEM_RELEASE
+	push	0
+	push	ebx
+	push	edi
+	call	[VirtualFreeEx]
+	push	edi
+	call	[CloseHandle]
+	mov	eax,esi
+	jmp	.fin
+    .close:
+	push	edi
+	call	[CloseHandle]
+    .err:
+	xor	eax,eax
     .fin:
 	pop	edi esi ebx
 	ret
