@@ -103,50 +103,50 @@ section '.code' code readable executable
 	push	dword [fs:0]
 	mov	[fs:0],esp
 	mov	eax,[esp+8]
-	push	_size_3_3_6
-	push	_mask_3_3_6
-	push	_ptrn_3_3_6
+	push	_size_3_3_0_0
+	push	_mask_3_3_0_0
+	push	_ptrn_3_3_0_0
 	push	20000h
 	push	eax
 	call	FindPattern
 	test	eax,eax
-	jnz	.3_3_6
+	jnz	.3_3_0_0
 	mov	eax,[esp+8]
-	push	_size_3_3_7
-	push	_mask_3_3_7
-	push	_ptrn_3_3_7
+	push	_size_3_3_7_7
+	push	_mask_3_3_7_7
+	push	_ptrn_3_3_7_7
 	push	20000h
 	push	eax
 	call	FindPattern
 	test	eax,eax
-	jnz	.3_3_7
+	jnz	.3_3_7_7
 	mov	eax,[esp+8]
-	push	_size_3_3_0
-	push	_mask_3_3_0
-	push	_ptrn_3_3_0
-	push	20000h
-	push	eax
-	call	FindPattern
-	test	eax,eax
-	jnz	.3_3_0
-	mov	eax,[esp+8]
-	push	_size_3_2_12
-	push	_mask_3_2_12
-	push	_ptrn_3_2_12
-	push	57000h
+	push	_size_3_3_7_0
+	push	_mask_3_3_7_0
+	push	_ptrn_3_3_7_0
+	push	58000h
 	push	eax
 	call	RFindPattern
 	test	eax,eax
-	jnz	.3_2_12
+	jnz	.3_3_7_0
 	mov	eax,[esp+8]
-	push	_size_3_2_8
-	push	_mask_3_2_8
-	push	_ptrn_3_2_8
-	push	57000h
+	push	_size_3_2_10_0
+	push	_mask_3_2_10_0
+	push	_ptrn_3_2_10_0
+	push	58000h
 	push	eax
 	call	RFindPattern
 	test	eax,eax
-	jnz	.3_2_8
+	jnz	.3_2_10_0
+	mov	eax,[esp+8]
+	push	_size_3_2_8_0
+	push	_mask_3_2_8_0
+	push	_ptrn_3_2_8_0
+	push	58000h
+	push	eax
+	call	RFindPattern
+	test	eax,eax
+	jnz	.3_2_8_0
     .err:
 	pop	dword [fs:0]
 	add	esp,4
@@ -157,46 +157,46 @@ section '.code' code readable executable
     .handler:
 	mov	esp,[esp+8]
 	jmp	.err
-    .3_3_6:
-	mov	cl,[eax+_modrm_3_3_6]
+    .3_3_0_0:
+	mov	cl,[eax+_modrm_3_3_0_0]
 	mov	[modrm],cl
-	add	eax,_count_3_3_6
+	add	eax,_count_3_3_0_0
 	push	5
 	push	decompile
 	push	eax
 	call	DetourFunc
 	jmp	.fin
-    .3_3_7:
-	mov	cl,[eax+_modrm_3_3_7]
+    .3_3_7_7:
+	mov	cl,[eax+_modrm_3_3_7_7]
 	mov	[modrm],cl
-	add	eax,_count_3_3_7
+	add	eax,_count_3_3_7_7
 	push	5
 	push	decompile
 	push	eax
 	call	DetourFunc
 	jmp	.fin
-    .3_3_0:
-	mov	cl,[eax+_modrm_3_3_0]
+    .3_3_7_0:
+	mov	cl,[eax+_modrm_3_3_7_0]
 	mov	[modrm],cl
-	add	eax,_count_3_3_0
+	add	eax,_count_3_3_7_0
 	push	5
 	push	decompile
 	push	eax
 	call	DetourFunc
 	jmp	.fin
-    .3_2_12:
-	mov	cl,[eax+_modrm_3_2_12]
+    .3_2_10_0:
+	mov	cl,[eax+_modrm_3_2_10_0]
 	mov	[modrm],cl
-	add	eax,_count_3_2_12
+	add	eax,_count_3_2_10_0
 	push	5
 	push	decompile
 	push	eax
 	call	DetourFunc
 	jmp	.fin
-    .3_2_8:
-	mov	cl,[eax+_modrm_3_2_8]
+    .3_2_8_0:
+	mov	cl,[eax+_modrm_3_2_8_0]
 	mov	[modrm],cl
-	add	eax,_count_3_2_8
+	add	eax,_count_3_2_8_0
 	push	5
 	push	decompile
 	push	eax
@@ -216,23 +216,23 @@ section '.code' code readable executable
 	push	dword [fs:0]
 	mov	[fs:0],esp
 	mov	eax,[esp+8]
-	push	_size_3_2_12
-	push	_mask_3_2_12
-	push	_ptrn_3_2_12
+	push	_size_3_2_10_0
+	push	_mask_3_2_10_0
+	push	_ptrn_3_2_10_0
 	push	10000h
 	push	eax
 	call	FindPattern
 	test	eax,eax
-	jnz	.3_2_12
+	jnz	.3_2_10_0
 	mov	eax,[esp+8]
-	push	_size_3_2_8
-	push	_mask_3_2_8
-	push	_ptrn_3_2_8
+	push	_size_3_2_8_0
+	push	_mask_3_2_8_0
+	push	_ptrn_3_2_8_0
 	push	10000h
 	push	eax
 	call	FindPattern
 	test	eax,eax
-	jnz	.3_2_8
+	jnz	.3_2_8_0
     .err:
 	pop	dword [fs:0]
 	add	esp,4
@@ -243,19 +243,19 @@ section '.code' code readable executable
     .handler:
 	mov	esp,[esp+8]
 	jmp	.err
-    .3_2_12:
-	mov	cl,[eax+_modrm_3_2_12]
+    .3_2_10_0:
+	mov	cl,[eax+_modrm_3_2_10_0]
 	mov	[modrm],cl
-	add	eax,_count_3_2_12
+	add	eax,_count_3_2_10_0
 	push	5
 	push	decompile
 	push	eax
 	call	DetourFunc
 	jmp	.fin
-    .3_2_8:
-	mov	cl,[eax+_modrm_3_2_8]
+    .3_2_8_0:
+	mov	cl,[eax+_modrm_3_2_8_0]
 	mov	[modrm],cl
-	add	eax,_count_3_2_8
+	add	eax,_count_3_2_8_0
 	push	5
 	push	decompile
 	push	eax
@@ -797,40 +797,59 @@ section '.data' data readable writeable
   _gclw db 'GetCommandLineW',0
   _spia db 'SystemParametersInfoA',0
 
-  ;===========================================================================
-  _ptrn_3_3_6	db 0FFh,08Bh,000h,000h,000h,08Bh,000h,000h,000h,00Fh,0B6h
-; _ptrn_3_3_2   db 0FFh,08Bh,000h,000h,000h,08Bh,000h,083h,000h,0FFh
-  _ptrn_3_3_7	db 032h,0C0h,0E9h,000h,000h,000h,0FFh,08Bh,000h,000h,08Bh
-  _ptrn_3_3_0	db 032h,0C0h,0E9h,000h,000h,000h,0FFh,08Bh,000h,000h,000h,08Bh
-  _ptrn_3_2_12	db 059h,0EBh,000h,08Bh,000h,000h,08Bh,000h,08Bh
-  _ptrn_3_2_8	db 059h,0EBh,000h,08Bh,000h,000h,000h,08Bh,000h,08Bh
-  ;===========================================================================
-  _mask_3_3_6	db 9,3,6,6,6,4,6,6,6,1,8   ;'xx...x...xx'
-  _size_3_3_6	=  $-_mask_3_3_6
-; _mask_3_3_2   db 2,2,6,6,6,1,6,1,6,8     ;'xx...x.x.x'
-; _size_3_3_2   =  $-_mask_3_3_2
-  _mask_3_3_7	db 1,2,4,6,6,6,1,7,6,6,0   ;'xxx...xx..x'
-  _size_3_3_7	=  $-_mask_3_3_7
-  _mask_3_3_0	db 9,9,9,6,6,6,8,8,6,6,6,4 ;'xxx...xx...x'
-  _size_3_3_0	=  $-_mask_3_3_0
-  _mask_3_2_12	db 3,0,6,7,6,6,5,6,9	   ;'xx.x..x.x'
-  _size_3_2_12	=  $-_mask_3_2_12
-  _mask_3_2_8	db 7,2,6,1,6,6,6,0,6,5	   ;'xx.x...x.x'
-  _size_3_2_8	=  $-_mask_3_2_8
-  ;===========================================================================
-  _modrm_3_3_6	=  6
-  _count_3_3_6	=  9
-; _modrm_3_3_2  =  2
-; _count_3_3_2  =  5
-  _modrm_3_3_7	=  8
-  _count_3_3_7	=  10
-  _modrm_3_3_0	=  8
-  _count_3_3_0	=  11
-  _modrm_3_2_12 =  4
-  _count_3_2_12 =  6
-  _modrm_3_2_8	=  4
-  _count_3_2_8	=  7
-  ;===========================================================================
+  ;=====================================================================================
+  ;     3_3_7_15
+  ;     3_3_7_14
+  ;     3_3_7_13
+  ;     3_3_7_12
+  ;     3_3_7_11
+  ;     3_3_7_10
+  ;     3_3_7_9
+  ;     3_3_7_8
+  _ptrn_3_3_7_7  db 032h,0C0h,0E9h,000h,000h,000h,0FFh,08Bh,000h,000h,08Bh  ;2.(forward)
+  ;     3_3_7_6
+  ;     3_3_7_5
+  ;     3_3_7_4
+  ;     3_3_7_3
+  ;     3_3_7_2
+  ;     3_3_7_1
+  ;   + 3_2_10_0
+  ;   + 3_2_6_0
+  _ptrn_3_3_7_0  db 059h,0EBh,000h,08Bh,000h,010h,08Bh,000h,08Bh	    ;3.(reverse)
+  ;     3_3_6_1
+  ;     3_3_6_0
+  ;     3_3_4_0
+  ;     3_3_2_0
+  _ptrn_3_3_0_0  db 0FFh,08Bh,000h,000h,000h,08Bh,000h,000h,000h,00Fh,0B6h  ;1.(forward)
+  ;     3_2_12_1
+  ;     3_2_12_0
+  ;   + 3_2_6_0
+  _ptrn_3_2_10_0 db 059h,0EBh,000h,08Bh,000h,000h,08Bh,000h,08Bh	    ;4.(reverse)
+  ;     3_2_8_1
+  _ptrn_3_2_8_0  db 059h,0EBh,000h,08Bh,000h,000h,000h,08Bh,000h,08Bh	    ;5.(reverse)
+  ;=====================================================================================
+  _mask_3_3_7_7  db 1,2,4,6,6,6,1,7,6,6,0  ;'xxx...xx..x'
+  _size_3_3_7_7  =  $-_mask_3_3_7_7
+  _mask_3_3_7_0  db 5,4,6,1,6,9,3,6,7	   ;'xx.x.xx.x'
+  _size_3_3_7_0  =  $-_mask_3_3_7_0
+  _mask_3_3_0_0  db 9,3,6,6,6,4,6,6,6,1,8  ;'xx...x...xx'
+  _size_3_3_0_0  =  $-_mask_3_3_0_0
+  _mask_3_2_10_0 db 3,0,6,7,6,6,5,6,9	   ;'xx.x..x.x'
+  _size_3_2_10_0 =  $-_mask_3_2_10_0
+  _mask_3_2_8_0  db 7,2,6,1,6,6,6,0,6,5    ;'xx.x...x.x'
+  _size_3_2_8_0  =  $-_mask_3_2_8_0
+  ;=====================================================================================
+  _modrm_3_3_7_7  =  8
+  _count_3_3_7_7  =  10
+  _modrm_3_3_7_0  =  4
+  _count_3_3_7_0  =  6
+  _modrm_3_3_0_0  =  6
+  _count_3_3_0_0  =  9
+  _modrm_3_2_10_0 =  4
+  _count_3_2_10_0 =  6
+  _modrm_3_2_8_0  =  4
+  _count_3_2_8_0  =  7
+  ;=====================================================================================
 
   _corrupt db 13,10,'..corrupted [%Xh]',0
 
