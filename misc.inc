@@ -93,6 +93,20 @@ RFindPattern:
 	pop	edi esi ebx
 	retn	14h
 
+IsMutex:
+	push	dword [esp+4]
+	push	0
+	push	0
+	call	[CreateMutex]
+	call	[GetLastError]
+	xor	ecx,ecx
+	cmp	eax,ERROR_ALREADY_EXISTS
+	jnz	.err
+	inc	ecx
+    .err:
+	mov	eax,ecx
+	retn	4
+
 proc alloc_base address
   local mbi:MEMORY_BASIC_INFORMATION
      lea	eax,[mbi]

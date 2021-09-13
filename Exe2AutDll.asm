@@ -16,19 +16,13 @@ section '.code' code readable executable
 	push	eax
 	call	[DisableThreadLibraryCalls]
 	push	_loaded
-	push	0
-	push	0
-	call	[CreateMutex]
-	call	[GetLastError]
-	cmp	eax,ERROR_ALREADY_EXISTS
-	je	.decompile
+	call	IsMutex
+	test	eax,eax
+	jnz	.decompile
 	push	_armadillo
-	push	0
-	push	0
-	call	[CreateMutex]
-	call	[GetLastError]
-	cmp	eax,ERROR_ALREADY_EXISTS
-	je	.armadillo
+	call	IsMutex
+	test	eax,eax
+	jnz	.armadillo
     .decompile:
 	push	_kernelbase
 	call	[GetModuleHandle]
@@ -60,9 +54,7 @@ section '.code' code readable executable
 	jmp	.fin
     .armadillo:
 	push	_loaded
-	push	0
-	push	0
-	call	[CreateMutex]
+	call	IsMutex
 	push	_kernel32
 	call	[GetModuleHandle]
 	push	_cpw
