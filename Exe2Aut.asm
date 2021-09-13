@@ -159,6 +159,8 @@ proc DialogProc hwnd,msg,wparam,lparam
 	push	pathdll
 	push	[_pi.dwProcessId]
 	call	InjectDll
+	test	eax,eax
+	je	.failed
 	push	[_pi.hThread]
 	call	[ResumeThread]
 	push	-1
@@ -191,6 +193,7 @@ proc DialogProc hwnd,msg,wparam,lparam
 	push	OF_READ
 	push	path
 	call	[_lopen]
+	mov	edx,_output
 	test	eax,eax
 	js	.output
 	mov	esi,eax
@@ -242,7 +245,17 @@ proc DialogProc hwnd,msg,wparam,lparam
 	push	[hwnd]
 	call	[SendMessage]
 	jmp	.done
+      .failed:
+	push	0
+	push	[_pi.hProcess]
+	call	[TerminateProcess]
+	push	[_pi.hProcess]
+	call	[CloseHandle]
+	push	[_pi.hThread]
+	call	[CloseHandle]
+	mov	edx,_failed
       .output:
+	push	edx
 	push	0
 	call	[GetModuleHandle]
 	push	0
@@ -257,7 +270,6 @@ proc DialogProc hwnd,msg,wparam,lparam
 	push	WM_SETICON
 	push	[hwnd]
 	call	[SendMessage]
-	push	_output
 	push	IDC_RESULT
 	push	[hwnd]
 	call	[SetDlgItemText]
@@ -392,6 +404,7 @@ section '.data' data readable writeable
 
   _courier db 'Courier New',0
   _output db 'Apparently, it didn''t work..',0
+  _failed db 'Something went wrong..',0
   _title db 'Exe2Aut',0
   _error db 'Either it''s not a PE file or it''s corrupted!',0
 
