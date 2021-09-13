@@ -377,6 +377,100 @@ section '.code' code readable executable
 	pop	edi esi
 	retn
 
+  capitalize:
+	cmp	al,33h
+	je	.ignore
+	cmp	al,35h
+	je	.ignore
+	cmp	al,36h
+	je	.ignore
+	cmp	al,37h
+	je	.prepr
+	movzx	ecx,[dummy]
+	cmp	ecx,'a'
+	jb	.ignore
+	cmp	ecx,'z'
+	ja	.ignore
+	sub	ecx,'a'
+	mov	edx,[_macros+ecx*4]
+	cmp	al,32h
+	je	.start
+	mov	edx,[_keywords+ecx*4]
+	cmp	al,30h
+	je	.start
+	mov	edx,[_funcs+ecx*4]
+    .start:
+	test	edx,edx
+	je	.ignore
+	push	eax esi edi
+    .join:
+	mov	esi,dummy
+	mov	edi,edx
+    .loop:
+	push	edi
+	push	esi
+	call	[lstrcmpi]
+	je	.equal
+	push	edi
+	call	[lstrlen]
+	lea	edi,[edi+eax+1]
+	cmp	byte [edi],0
+	je	.fin
+	jmp	.loop
+    .prepr:
+	push	eax esi edi
+	mov	edx,_preprocessor
+	xor	eax,eax
+	mov	edi,dummy
+	mov	al,7
+	mov	cl,2
+	cmp	byte [edi+eax],' '
+	je	.region
+	mov	al,10
+	mov	cl,3
+	cmp	byte [edi+eax],' '
+	je	.region
+	mov	ecx,ebx
+	mov	eax,'='
+	repnz	scasb
+	jnz	.join
+	mov	[edi-1],ah
+	mov	[dummy+ebx+1],1
+	jmp	.join
+    .region:
+	mov	[edi+eax],ah
+	mov	[edi+ebx+1],cl
+	jmp	.join
+    .equal:
+	push	edi
+	push	esi
+	call	[lstrcpy]
+    .fin:
+	pop	edi esi eax
+	xor	ecx,ecx
+	mov	edx,dummy
+	cmp	al,37h
+	jnz	.ignore
+	mov	dl,[edx+ebx+1]
+	mov	cl,7
+	cmp	dl,2
+	je	.space
+	mov	cl,10
+	cmp	dl,3
+	je	.space
+	cmp	dl,1
+	jnz	.ignore
+	push	eax
+	push	dummy
+	call	[lstrlen]
+	mov	[dummy+eax],'='
+	pop	eax
+	jmp	.ignore
+    .space:
+	mov	[dummy+ecx],' '
+    .ignore:
+	retn
+
   decompile:
 	and	[modrm],00111000b
 	shr	[modrm],3
@@ -481,6 +575,7 @@ section '.code' code readable executable
 	lea	eax,[esi+4]
 	mov	ebx,[esi]
 	mov	ecx,[esi]
+	push	ebx
 	test	ebx,ebx
 	jnz	.decrypt
 	mov	[dummy],0
@@ -501,16 +596,13 @@ section '.code' code readable executable
 	mov	[dummy+ebx],cl
       .empty:
 	mov	al,[esi-1]
+	call	.modify
 	cmp	al,36h
 	je	.string
-	push	eax
-	push	dummy
-	call	[CharLower]
-	pop	eax
 	cmp	al,30h
 	je	.keyword
 	mov	ecx,1
-	mov	edx,_const
+	mov	edx,_macro
 	cmp	al,32h
 	je	.ustr_write
 	mov	edx,_var
@@ -524,6 +616,16 @@ section '.code' code readable executable
 	push	edi
 	call	[_lwrite]
 	jmp	.ustr_fin
+      .modify:
+	cmp	al,36h
+	je	.dontmodify
+	push	eax
+	push	dummy
+	call	[CharLower]
+	pop	eax
+	call	capitalize
+      .dontmodify:
+	retn
       .string:
 	mov	ecx,2
 	mov	edx,_str
@@ -531,43 +633,41 @@ section '.code' code readable executable
 	jmp	.ustr_write
       .keyword:
 	mov	word [dummy+ebx],' '
-	cmp	dword [dummy],'if '
+	cmp	dword [dummy],'If '
 	je	.itabs
 	cmp	dword [dummy+1],'lse '
 	je	.else
-	cmp	dword [dummy+1],'lsei'
+	cmp	dword [dummy+1],'lseI'
 	je	.mtabs
-	cmp	dword [dummy+1],'ndif'
+	cmp	dword [dummy],'EndI'
 	je	.dtabs
-	cmp	dword [dummy],'whil'
+	cmp	dword [dummy],'Whil'
 	je	.itabs
-	cmp	dword [dummy],'wend'
+	cmp	dword [dummy],'WEnd'
 	je	.dtabs
-	cmp	dword [dummy],'do '
+	cmp	dword [dummy],'Do '
 	je	.itabs
-	cmp	dword [dummy],'unti'
+	cmp	dword [dummy],'Unti'
 	je	.dtabs
-	cmp	dword [dummy],'for '
+	cmp	dword [dummy],'For '
 	je	.itabs
-	cmp	dword [dummy],'next'
+	cmp	dword [dummy],'Next'
 	je	.dtabs
-	cmp	dword [dummy],'sele'
+	cmp	dword [dummy],'Sele'
 	je	.titabs
-	cmp	dword [dummy+1],'ndse'
-	je	.tdtabs
-	cmp	dword [dummy],'swit'
+	cmp	dword [dummy],'Swit'
 	je	.titabs
-	cmp	dword [dummy+1],'ndsw'
+	cmp	dword [dummy],'EndS'
 	je	.tdtabs
-	cmp	dword [dummy],'case'
+	cmp	dword [dummy],'Case'
 	je	.mtabs
-	cmp	dword [dummy],'func'
+	cmp	dword [dummy],'Func'
 	je	.itabs
-	cmp	dword [dummy+1],'ndfu'
+	cmp	dword [dummy],'EndF'
 	je	.dtabs
-	cmp	dword [dummy],'with'
+	cmp	dword [dummy],'With'
 	je	.itabs
-	cmp	dword [dummy+1],'ndwi'
+	cmp	dword [dummy],'EndW'
 	je	.dtabs
 	jmp	.ltabs
       .else:
@@ -594,41 +694,41 @@ section '.code' code readable executable
 	call	[_llseek]
       .ltabs:
 	xor	edx,edx
-	cmp	dword [dummy],'and '
+	cmp	dword [dummy],'AND '
 	je	.leading_space
-	cmp	dword [dummy],'or '
+	cmp	dword [dummy],'OR '
 	je	.leading_space
-	cmp	dword [dummy],'then'
+	cmp	dword [dummy],'Then'
 	je	.then
-	cmp	dword [dummy],'to '
+	cmp	dword [dummy],'To '
 	je	.leading_space
-	cmp	dword [dummy],'in '
+	cmp	dword [dummy],'In '
 	je	.leading_space
-	cmp	dword [dummy],'func'
+	cmp	dword [dummy],'Func'
 	je	.newline
-	cmp	dword [dummy+1],'ndfu'
+	cmp	dword [dummy],'EndF'
 	je	.tnewline
 	cmp	dword [dummy+1],'lse '
 	je	.neither
-	cmp	dword [dummy],'endi'
+	cmp	dword [dummy],'EndI'
 	je	.neither
-	cmp	dword [dummy],'wend'
+	cmp	dword [dummy],'WEnd'
 	je	.neither
-	cmp	dword [dummy],'do '
+	cmp	dword [dummy],'Do '
 	je	.neither
-	cmp	dword [dummy],'next'
+	cmp	dword [dummy],'Next'
 	je	.neither
-	cmp	dword [dummy],'ends'
+	cmp	dword [dummy],'EndS'
 	je	.neither
-	cmp	dword [dummy],'endw'
+	cmp	dword [dummy],'EndW'
 	je	.neither
-	cmp	dword [dummy],'true'
+	cmp	dword [dummy],'True'
 	je	.neither
-	cmp	dword [dummy],'fals'
+	cmp	dword [dummy],'Fals'
 	je	.neither
-	cmp	dword [dummy],'enum'
+	cmp	dword [dummy],'Enum'
 	je	.neither
-	cmp	dword [dummy],'step'
+	cmp	dword [dummy],'Step'
 	jnz	.trailing_space
 	mov	[step_mod],1
 	jmp	.leading_space
@@ -698,6 +798,7 @@ section '.code' code readable executable
 	push	edi
 	call	[_lwrite]
       .ustr_fin:
+	pop	ebx
 	lea	ebx,[ebx+ebx+4]
     .next:
 	mov	[unary_mod],0
@@ -927,13 +1028,15 @@ section '.data' data readable writeable
   _int64 db '%I64d',0
   _float db '%.15g',0
 
-  _const db '@%s',0
+  _macro db '@%s',0
   _var db '$%s',0
   _prop db '.%s',0
   _str db '"%s"',0
   _str2 db '''%s''',0
   _space db ' %s',0
   _eol db 13,10
+
+  include 'func_table.inc'
 
   hmodule rd 1
   _GetCommandLineW rd 1
