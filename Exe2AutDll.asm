@@ -4,6 +4,8 @@ entry start
 
 include 'win32a.inc'
 
+BUFFER_SIZE = 3052
+
 section '.code' code readable executable
 
   start:
@@ -47,11 +49,6 @@ section '.code' code readable executable
 	call	DetourFunc
 	jmp	[_GetCommandLineW]
     .err:
-	push	MB_OK
-	push	_title
-	push	_error
-	push	0
-	call	[MessageBox]
 	push	0
 	call	[ExitProcess]
 
@@ -100,9 +97,11 @@ section '.code' code readable executable
 	retn
 
   decompile:
+	mov	eax,[edx]
+	mov	[lines],eax
 	lea	eax,[edx+4]
 	push	eax
-	push	200h
+	push	BUFFER_SIZE
 	push	buf
 	push	0
 	call	[GetModuleFileName]
@@ -136,10 +135,6 @@ section '.code' code readable executable
 	call	[_lcreat]
 	mov	edi,eax
 	pop	esi
-	;push    2
-	;push    _eol
-	;push    edi
-	;call    [_lwrite]
     .loop:
 	cmp	[tnl],1
 	jnz	.read
@@ -151,11 +146,6 @@ section '.code' code readable executable
       .read:
 	mov	al,[esi]
 	inc	esi
-	test	al,al
-	je	.eos
-	cmp	al,7Fh
-	je	.eol
-	mov	[eos],0
 	cmp	al,0Fh
 	jng	.int32
 	cmp	al,1Fh
@@ -166,6 +156,8 @@ section '.code' code readable executable
 	jng	.ustr
 	cmp	al,56h
 	jng	.ops
+	cmp	al,7Fh
+	je	.eol
 	jmp	.corrupt
     .int32:
 	push	dword [esi]
@@ -179,12 +171,15 @@ section '.code' code readable executable
 	call	[_lwrite]
 	cmp	[step_mod],1
 	jnz	.nospace
+	mov	al,[esi+4]
+	mov	[step_mod],0
+	cmp	al,7Fh
+	je	.nospace
 	mov	byte [buf],' '
 	push	1
 	push	buf
 	push	edi
 	call	[_lwrite]
-	mov	[step_mod],0
       .nospace:
 	mov	ebx,4
 	jmp	.next
@@ -202,14 +197,12 @@ section '.code' code readable executable
 	mov	ebx,8
 	jmp	.next
     .float:
-	;fld qword [esi]
 	push	dword [esi+4]
 	push	dword [esi]
 	push	_float
 	push	buf
 	call	[sprintf]
 	add	esp,10h
-       ; cinvoke sprintf, buf, "fp number %Lf", double [esi]
 	push	eax
 	push	buf
 	push	edi
@@ -272,8 +265,8 @@ section '.code' code readable executable
 	mov	word [dummy+ebx],' '
 	cmp	dword [dummy],'if '
 	je	.itabs
-	cmp	dword [dummy],'else'
-	je	.mtabs
+	cmp	dword [dummy+1],'lse '
+	je	.else
 	cmp	dword [dummy+1],'lsei'
 	je	.mtabs
 	cmp	dword [dummy+1],'ndif'
@@ -309,6 +302,10 @@ section '.code' code readable executable
 	cmp	dword [dummy+1],'ndwi'
 	je	.dtabs
 	jmp	.ltabs
+      .else:
+	cmp	byte [esi-2],7Fh
+	je	.mtabs
+	jmp	.ltabs
       .titabs:
 	inc	[tabs]
       .itabs:
@@ -324,6 +321,7 @@ section '.code' code readable executable
 	push	edi
 	call	[_llseek]
       .ltabs:
+	xor	edx,edx
 	cmp	dword [dummy],'and '
 	je	.leading_space
 	cmp	dword [dummy],'or '
@@ -338,13 +336,33 @@ section '.code' code readable executable
 	je	.newline
 	cmp	dword [dummy+1],'ndfu'
 	je	.tnewline
+	cmp	dword [dummy+1],'lse '
+	je	.neither
+	cmp	dword [dummy],'endi'
+	je	.neither
+	cmp	dword [dummy],'wend'
+	je	.neither
+	cmp	dword [dummy],'do '
+	je	.neither
+	cmp	dword [dummy],'next'
+	je	.neither
+	cmp	dword [dummy],'ends'
+	je	.neither
+	cmp	dword [dummy],'endw'
+	je	.neither
+	cmp	dword [dummy],'true'
+	je	.neither
+	cmp	dword [dummy],'fals'
+	je	.neither
 	cmp	dword [dummy],'enum'
-	je	.enum
+	je	.neither
 	cmp	dword [dummy],'step'
 	jnz	.trailing_space
 	mov	[step_mod],1
 	jmp	.leading_space
-      .enum:
+      .tnewline:
+	mov	[tnl],1
+      .neither:
 	mov	ecx,ebx
 	mov	edx,dummy
 	jmp	.write_keyword
@@ -363,9 +381,6 @@ section '.code' code readable executable
 	push	_eol
 	push	edi
 	call	[_lwrite]
-	jmp	.trailing_space
-      .tnewline:
-	mov	[tnl],1
       .trailing_space:
 	lea	ecx,[ebx+1]
 	mov	edx,dummy
@@ -374,14 +389,22 @@ section '.code' code readable executable
 	lea	edx,[ebx+ebx+4]
 	cmp	byte [esi+edx],7Fh
 	je	.leading_space
+	xor	edx,edx
 	dec	[tabs]
       .leading_space:
+	push	edx
 	push	dummy
 	push	_space
 	push	buf
-	call	[wsprintf]
+	call	[sprintf]
 	add	esp,0Ch
-	lea	ecx,[ebx+2]
+	pop	edx
+	mov	eax,2
+	test	edx,edx
+	je	.with_trailing
+	dec	eax
+      .with_trailing:
+	lea	ecx,[ebx+eax]
 	mov	edx,buf
       .write_keyword:
 	push	ecx
@@ -394,7 +417,7 @@ section '.code' code readable executable
 	push	dummy
 	push	edx
 	push	buf
-	call	[wsprintf]
+	call	[sprintf]
 	add	esp,0Ch
 	pop	ecx
 	lea	edx,[ebx+ecx]
@@ -520,34 +543,14 @@ section '.code' code readable executable
 	mov	[unary_mod],1
 	jmp	.loop
     .eol:
-    push esi
-    push _lol
-    push buf
-    call [wsprintf]
-    add esp,0Ch
-    push 0
-    push 0
-    push buf
-    push 0
-    call [MessageBox]
-	cmp	[eos],1
+	inc	[line]
+	mov	eax,[lines]
+	cmp	[line],eax
 	je	.eos
-	mov	[eos],1
-	push	1
-	push	-4
-	push	edi
-	call	[_llseek]
-	push	4
-	push	buf
-	push	edi
-	call	[_lread]
-	cmp	dword [buf],0A0D0A0Dh
-	je	.already
 	push	2
 	push	_eol
 	push	edi
 	call	[_lwrite]
-      .already:
 	mov	ecx,[tabs]
 	mov	edx,[tabs]
 	test	ecx,ecx
@@ -561,11 +564,16 @@ section '.code' code readable executable
 	call	[_lwrite]
 	jmp	.loop
     .corrupt:
-	push	MB_OK
-	push	_title
-	push	_error
-	push	0
-	call	[MessageBox]
+	movzx	ecx,al
+	push	ecx
+	push	_corrupt
+	push	buf
+	call	[wsprintf]
+	add	esp,0Ch
+	push	eax
+	push	buf
+	push	edi
+	call	[_lwrite]
     .eos:
 	push	edi
 	call	[_lclose]
@@ -584,14 +592,11 @@ section '.data' data readable writeable
   _ptrn_mask db 'ab..ef..ij'
   ptrn_size = $-_ptrn_mask
 
-_lol db '%x',0
-
-  _title db 'Exe2Aut',0
-  _error db 'aww, it''s not working..',0
+  _corrupt db 13,10,'..corrupted [%X]',0
 
   _int32 db '%d',0
   _int64 db '%I64d',0
-  _float db '%Lf',0
+  _float db '%.15g',0
 
   _const db '@%s',0
   _var db '$%s',0
@@ -602,13 +607,14 @@ _lol db '%x',0
   _eol db 13,10
 
   _GetCommandLineW rd 1
+  lines rd 1
+  line rd 1
   tabs rd 1
-  eos rb 1
   tnl rb 1
   unary_mod rb 1
   step_mod rb 1
-  buf rb 200h
-  dummy rb 200h
+  buf rb BUFFER_SIZE
+  dummy rb BUFFER_SIZE
 
 section '.idata' import data readable
 
@@ -620,7 +626,6 @@ section '.idata' import data readable
 
   import user32,\
 	 CharLower,'CharLowerA',\
-	 MessageBox,'MessageBoxA',\
 	 wsprintf,'wsprintfA'
 
   import msvcrt,\
