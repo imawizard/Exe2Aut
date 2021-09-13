@@ -29,6 +29,17 @@ section '.code' code readable executable
 	push	eax
 	call	DetourFunc
 	mov	[_GetCommandLineW],eax
+	push	_user32
+	call	[GetModuleHandle]
+	push	_spia
+	push	eax
+	call	[GetProcAddress]
+	call	.size
+	push	ecx
+	push	MySystemParametersInfoA
+	push	eax
+	call	DetourFunc
+	mov	[_SystemParametersInfoA],eax
     .fin:
 	mov	eax,TRUE
 	retn	0Ch
@@ -47,25 +58,214 @@ section '.code' code readable executable
 	pop	eax
 	retn
 
+  filename:
+	push	esi edi
+	push	BUFFER_SIZE
+	push	buf
+	push	0
+	call	[GetModuleFileName]
+	xchg	eax,edx
+	std
+	or	ecx,-1
+	mov	al,'\'
+	lea	edi,[buf+edx-1]
+	repnz	scasb
+	add	edi,2
+	cld
+	neg	ecx
+	mov	esi,edi
+	sub	ecx,2
+	sub	edi,edx
+	add	edi,ecx
+	mov	edx,ecx
+	rep	movsb
+	mov	esi,edi
+	dec	edi
+	std
+	mov	al,'.'
+	mov	ecx,edx
+	repnz	scasb
+	cld
+	lea	eax,[edi+1]
+	je	.found
+	mov	eax,esi
+    .found:
+	mov	dword [eax],'_.au'
+	mov	word [eax+4],'3'
+	pop	edi esi
+	retn
+
   MyGetCommandLineW:
-	mov	eax,[esp]
-	push	ptrn_size
-	push	_ptrn_mask
-	push	_ptrn
-	push	30000h
+	cmp	[already],1
+	je	.already
+	call	filename
+	push	.handler
+	push	dword [fs:0]
+	mov	[fs:0],esp
+	mov	eax,[esp+8]
+	push	_size_3_3_6
+	push	_mask_3_3_6
+	push	_ptrn_3_3_6
+	push	20000h
 	push	eax
 	call	FindPattern
 	test	eax,eax
-	je	.err
-	add	eax,8
+	jnz	.3_3_6
+	mov	eax,[esp+8]
+	push	_size_3_3_7
+	push	_mask_3_3_7
+	push	_ptrn_3_3_7
+	push	20000h
+	push	eax
+	call	FindPattern
+	test	eax,eax
+	jnz	.3_3_7
+	mov	eax,[esp+8]
+	push	_size_3_3_0
+	push	_mask_3_3_0
+	push	_ptrn_3_3_0
+	push	20000h
+	push	eax
+	call	FindPattern
+	test	eax,eax
+	jnz	.3_3_0
+	mov	eax,[esp+8]
+	push	_size_3_2_12
+	push	_mask_3_2_12
+	push	_ptrn_3_2_12
+	push	57000h
+	push	eax
+	call	RFindPattern
+	test	eax,eax
+	jnz	.3_2_12
+	mov	eax,[esp+8]
+	push	_size_3_2_8
+	push	_mask_3_2_8
+	push	_ptrn_3_2_8
+	push	57000h
+	push	eax
+	call	RFindPattern
+	test	eax,eax
+	jnz	.3_2_8
+    .err:
+	pop	dword [fs:0]
+	add	esp,4
+	push	buf
+	call	[DeleteFile]
+	push	0
+	call	[ExitProcess]
+    .handler:
+	mov	esp,[esp+8]
+	jmp	.err
+    .3_3_6:
+	mov	cl,[eax+_modrm_3_3_6]
+	mov	[modrm],cl
+	add	eax,_count_3_3_6
 	push	5
 	push	decompile
 	push	eax
 	call	DetourFunc
+	jmp	.fin
+    .3_3_7:
+	mov	cl,[eax+_modrm_3_3_7]
+	mov	[modrm],cl
+	add	eax,_count_3_3_7
+	push	5
+	push	decompile
+	push	eax
+	call	DetourFunc
+	jmp	.fin
+    .3_3_0:
+	mov	cl,[eax+_modrm_3_3_0]
+	mov	[modrm],cl
+	add	eax,_count_3_3_0
+	push	5
+	push	decompile
+	push	eax
+	call	DetourFunc
+	jmp	.fin
+    .3_2_12:
+	mov	cl,[eax+_modrm_3_2_12]
+	mov	[modrm],cl
+	add	eax,_count_3_2_12
+	push	5
+	push	decompile
+	push	eax
+	call	DetourFunc
+	jmp	.fin
+    .3_2_8:
+	mov	cl,[eax+_modrm_3_2_8]
+	mov	[modrm],cl
+	add	eax,_count_3_2_8
+	push	5
+	push	decompile
+	push	eax
+	call	DetourFunc
+    .fin:
+	pop	dword [fs:0]
+	add	esp,4
+	mov	[already],1
+    .already:
 	jmp	[_GetCommandLineW]
+
+  MySystemParametersInfoA:
+	cmp	[already],1
+	je	.already
+	call	filename
+	push	.handler
+	push	dword [fs:0]
+	mov	[fs:0],esp
+	mov	eax,[esp+8]
+	push	_size_3_2_12
+	push	_mask_3_2_12
+	push	_ptrn_3_2_12
+	push	10000h
+	push	eax
+	call	FindPattern
+	test	eax,eax
+	jnz	.3_2_12
+	mov	eax,[esp+8]
+	push	_size_3_2_8
+	push	_mask_3_2_8
+	push	_ptrn_3_2_8
+	push	10000h
+	push	eax
+	call	FindPattern
+	test	eax,eax
+	jnz	.3_2_8
     .err:
+	pop	dword [fs:0]
+	add	esp,4
+	push	buf
+	call	[DeleteFile]
 	push	0
 	call	[ExitProcess]
+    .handler:
+	mov	esp,[esp+8]
+	jmp	.err
+    .3_2_12:
+	mov	cl,[eax+_modrm_3_2_12]
+	mov	[modrm],cl
+	add	eax,_count_3_2_12
+	push	5
+	push	decompile
+	push	eax
+	call	DetourFunc
+	jmp	.fin
+    .3_2_8:
+	mov	cl,[eax+_modrm_3_2_8]
+	mov	[modrm],cl
+	add	eax,_count_3_2_8
+	push	5
+	push	decompile
+	push	eax
+	call	DetourFunc
+    .fin:
+	pop	dword [fs:0]
+	add	esp,4
+	mov	[already],1
+    .already:
+	jmp	[_SystemParametersInfoA]
 
   sanitize_string:
 	push	esi edi ecx
@@ -112,44 +312,31 @@ section '.code' code readable executable
 	retn
 
   decompile:
+	and	[modrm],00111000b
+	shr	[modrm],3
+	cmp	[modrm],2
+	je	.found
+	mov	edx,eax
+	cmp	[modrm],0
+	je	.found
+	mov	edx,ecx
+	cmp	[modrm],1
+	je	.found
+	mov	edx,ebx
+	cmp	[modrm],3
+	je	.found
+	mov	edx,esi
+	cmp	[modrm],6
+	je	.found
+	mov	edx,edi
+    .found:
 	mov	eax,[edx]
 	mov	[lines],eax
-	lea	eax,[edx+4]
-	push	eax
-	push	BUFFER_SIZE
-	push	buf
-	push	0
-	call	[GetModuleFileName]
-	xchg	eax,edx
-	std
-	or	ecx,-1
-	mov	al,'\'
-	lea	edi,[buf+edx-1]
-	repnz	scasb
-	add	edi,2
-	cld
-	neg	ecx
-	mov	esi,edi
-	sub	ecx,2
-	sub	edi,edx
-	add	edi,ecx
-	mov	edx,ecx
-	rep	movsb
-	mov	al,'.'
-	mov	ecx,edx
-	sub	edi,edx
-	repnz	scasb
-	mov	eax,edi
-	jnz	.file
-	dec	eax
-    .file:
-	mov	dword [eax],'_.au'
-	mov	word [eax+4],'3'
+	lea	esi,[edx+4]
 	push	0
 	push	buf
 	call	[_lcreat]
 	mov	edi,eax
-	pop	esi
     .loop:
 	cmp	[newline],1
 	jnz	.read
@@ -605,14 +792,47 @@ section '.code' code readable executable
 section '.data' data readable writeable
 
   _kernel32 db 'kernel32.dll',0
+  _user32 db 'user32.dll',0
   _kernelbase db 'kernelbase.dll',0
   _gclw db 'GetCommandLineW',0
+  _spia db 'SystemParametersInfoA',0
 
-  _ptrn db 08Bh,04Ch,000h,000h,08Bh,054h,000h,000h,00Fh,0B6h
-  _ptrn_mask db 'ab..ef..ij'
-  ptrn_size = $-_ptrn_mask
+  ;===========================================================================
+  _ptrn_3_3_6	db 0FFh,08Bh,000h,000h,000h,08Bh,000h,000h,000h,00Fh,0B6h
+; _ptrn_3_3_2   db 0FFh,08Bh,000h,000h,000h,08Bh,000h,083h,000h,0FFh
+  _ptrn_3_3_7	db 032h,0C0h,0E9h,000h,000h,000h,0FFh,08Bh,000h,000h,08Bh
+  _ptrn_3_3_0	db 032h,0C0h,0E9h,000h,000h,000h,0FFh,08Bh,000h,000h,000h,08Bh
+  _ptrn_3_2_12	db 059h,0EBh,000h,08Bh,000h,000h,08Bh,000h,08Bh
+  _ptrn_3_2_8	db 059h,0EBh,000h,08Bh,000h,000h,000h,08Bh,000h,08Bh
+  ;===========================================================================
+  _mask_3_3_6	db 9,3,6,6,6,4,6,6,6,1,8   ;'xx...x...xx'
+  _size_3_3_6	=  $-_mask_3_3_6
+; _mask_3_3_2   db 2,2,6,6,6,1,6,1,6,8     ;'xx...x.x.x'
+; _size_3_3_2   =  $-_mask_3_3_2
+  _mask_3_3_7	db 1,2,4,6,6,6,1,7,6,6,0   ;'xxx...xx..x'
+  _size_3_3_7	=  $-_mask_3_3_7
+  _mask_3_3_0	db 9,9,9,6,6,6,8,8,6,6,6,4 ;'xxx...xx...x'
+  _size_3_3_0	=  $-_mask_3_3_0
+  _mask_3_2_12	db 3,0,6,7,6,6,5,6,9	   ;'xx.x..x.x'
+  _size_3_2_12	=  $-_mask_3_2_12
+  _mask_3_2_8	db 7,2,6,1,6,6,6,0,6,5	   ;'xx.x...x.x'
+  _size_3_2_8	=  $-_mask_3_2_8
+  ;===========================================================================
+  _modrm_3_3_6	=  6
+  _count_3_3_6	=  9
+; _modrm_3_3_2  =  2
+; _count_3_3_2  =  5
+  _modrm_3_3_7	=  8
+  _count_3_3_7	=  10
+  _modrm_3_3_0	=  8
+  _count_3_3_0	=  11
+  _modrm_3_2_12 =  4
+  _count_3_2_12 =  6
+  _modrm_3_2_8	=  4
+  _count_3_2_8	=  7
+  ;===========================================================================
 
-  _corrupt db 13,10,'..corrupted [%X]',0
+  _corrupt db 13,10,'..corrupted [%Xh]',0
 
   _int32 db '%d',0
   _int64 db '%I64d',0
@@ -627,12 +847,15 @@ section '.data' data readable writeable
   _eol db 13,10
 
   _GetCommandLineW rd 1
-  lines rd 1
-  line rd 1
-  tabs rd 1
+  _SystemParametersInfoA rd 1
+  already rb 1
+  modrm rb 1
   newline rb 1
   unary_mod rb 1
   step_mod rb 1
+  tabs rd 1
+  line rd 1
+  lines rd 1
   buf rb BUFFER_SIZE
   dummy rb BUFFER_SIZE
 

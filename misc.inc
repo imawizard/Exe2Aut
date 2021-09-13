@@ -36,7 +36,7 @@ FindPattern:
 	mov	eax,[esp]
 	sub	eax,edi
 	neg	eax
-	cmp	byte [edx+eax],'.'
+	cmp	byte [edx+eax],6 ;'?'
 	je	.compare
     .no_match:
 	pop	edi
@@ -45,6 +45,49 @@ FindPattern:
     .not_found:
 	xor	eax,eax
     .fin:
+	pop	edi esi ebx
+	retn	14h
+
+RFindPattern:
+	push	ebx esi edi
+	mov	edi,[esp+10h]
+	mov	ecx,[esp+14h]
+	mov	edx,[esp+1Ch]
+	dec	dword [esp+20h]
+    .loop:
+	mov	esi,[esp+18h]
+	mov	al,[esi]
+	std
+	repnz	scasb
+	jnz	.not_found
+	add	edi,2
+	xchg	ebx,ecx
+	push	edi
+	inc	esi
+	mov	ecx,[esp+24h]
+	cld
+    .compare:
+	repe	cmpsb
+	jnz	.check_wildcard
+	pop	eax
+	dec	eax
+	jmp	.fin
+    .check_wildcard:
+	jecxz	.no_match
+	mov	eax,[esp]
+	sub	eax,edi
+	neg	eax
+	cmp	byte [edx+eax],6 ;'?'
+	je	.compare
+    .no_match:
+	pop	edi
+	sub	edi,2
+	xchg	ebx,ecx
+	jmp	.loop
+    .not_found:
+	xor	eax,eax
+    .fin:
+	cld
 	pop	edi esi ebx
 	retn	14h
 
