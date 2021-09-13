@@ -601,6 +601,7 @@ section '.code' code readable executable
 	je	.string
 	cmp	al,30h
 	je	.keyword
+	mov	[enum_mod],0
 	mov	ecx,1
 	mov	edx,_macro
 	cmp	al,32h
@@ -727,11 +728,22 @@ section '.code' code readable executable
 	cmp	dword [dummy],'Fals'
 	je	.neither
 	cmp	dword [dummy],'Enum'
-	je	.neither
+	je	.enum
 	cmp	dword [dummy],'Step'
 	jnz	.trailing_space
 	mov	[step_mod],1
+	cmp	[enum_mod],1
+	jnz	.leading_space
+	mov	[enum_mod],0
+	push	1
+	push	-1
+	push	edi
+	call	[_llseek]
+	xor	edx,edx
 	jmp	.leading_space
+      .enum:
+	mov	[enum_mod],1
+	jmp	.trailing_space
       .tnewline:
 	mov	[newline],1
       .neither:
@@ -1046,6 +1058,7 @@ section '.data' data readable writeable
   modrm rb 1
   newline rb 1
   unary_mod rb 1
+  enum_mod rb 1
   step_mod rb 1
   tabs rd 1
   line rd 1
