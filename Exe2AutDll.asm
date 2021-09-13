@@ -151,13 +151,13 @@ section '.code' code readable executable
 	mov	edi,eax
 	pop	esi
     .loop:
-	cmp	[tnl],1
+	cmp	[newline],1
 	jnz	.read
 	push	2
 	push	_eol
 	push	edi
 	call	[_lwrite]
-	mov	[tnl],0
+	mov	[newline],0
       .read:
 	mov	al,[esi]
 	inc	esi
@@ -328,6 +328,10 @@ section '.code' code readable executable
 	jmp	.ltabs
       .tdtabs:
 	dec	[tabs]
+	push	1
+	push	-1
+	push	edi
+	call	[_llseek]
       .dtabs:
 	dec	[tabs]
       .mtabs:
@@ -376,7 +380,7 @@ section '.code' code readable executable
 	mov	[step_mod],1
 	jmp	.leading_space
       .tnewline:
-	mov	[tnl],1
+	mov	[newline],1
       .neither:
 	mov	ecx,ebx
 	mov	edx,dummy
@@ -626,7 +630,7 @@ section '.data' data readable writeable
   lines rd 1
   line rd 1
   tabs rd 1
-  tnl rb 1
+  newline rb 1
   unary_mod rb 1
   step_mod rb 1
   buf rb BUFFER_SIZE
