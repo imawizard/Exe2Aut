@@ -23,16 +23,24 @@ section '.code' code readable executable
 	push	eax
 	cmp	[argc],1
 	je	.free
-	mov	eax,[eax+4]
+	mov	ebx,[argc]
+	lea	esi,[eax+4]
+    .argv:
 	push	_armswitch
-	push	eax
+	push	dword [esi]
 	call	[lstrcmpiW]
-	jnz	.free
+	je	.armadillo
+	jmp	.next
+      .armadillo:
 	push	_armmutex
 	push	0
 	push	0
 	call	[CreateMutex]
-	mov	[mutex],eax
+	mov	[armmutex],eax
+    .next:
+	add	esi,4
+	dec	ebx
+	jnz	.argv
     .free:
 	call	[LocalFree]
 	push	0
@@ -87,10 +95,10 @@ proc DialogProc hwnd,msg,wparam,lparam
 	push	ebx
 	call	[AppendMenu]
 	mov	eax,MF_STRING
-	cmp	[mutex],0
-	je	.append
+	cmp	[armmutex],0
+	je	.append_arm
 	or	eax,MF_CHECKED
-      .append:
+      .append_arm:
 	push	_armadillo
 	push	IDM_ARMDB
 	push	eax
@@ -130,38 +138,46 @@ proc DialogProc hwnd,msg,wparam,lparam
     .wm_syscommand:
 	xor	eax,eax
 	cmp	[wparam],IDM_ARMDB
-	jnz	.fin
-	push	ebx
+	je	.armadillo
+	jmp	.fin
+      .armadillo:
+	push	ebx esi edi
+	mov	ebx,IDM_ARMDB
+	mov	esi,_armmutex
+	mov	edi,armmutex
 	push	0
 	push	[hwnd]
 	call	[GetSystemMenu]
-	mov	ebx,eax
+	push	eax
 	push	0
-	push	IDM_ARMDB
+	push	ebx
 	push	eax
 	call	[GetMenuState]
 	xor	eax,MF_CHECKED
+	pop	ecx
 	push	eax
 	push	eax
-	push	IDM_ARMDB
 	push	ebx
+	push	ecx
 	call	[CheckMenuItem]
 	pop	eax
-	pop	ebx
 	test	eax,MF_CHECKED
 	je	.release
-	push	_armmutex
+	push	esi
 	push	0
 	push	0
 	call	[CreateMutex]
-	mov	[mutex],eax
+	mov	[edi],eax
+	pop	edi esi ebx
 	jmp	.done
       .release:
-	push	[mutex]
+	mov	ebx,[edi]
+	push	ebx
 	call	[ReleaseMutex]
-	push	[mutex]
+	push	ebx
 	call	[CloseHandle]
-	and	[mutex],0
+	and	dword [edi],0
+	pop	edi esi ebx
 	jmp	.done
     .wm_command:
 	push	IDC_RESULT
@@ -288,7 +304,7 @@ proc DialogProc hwnd,msg,wparam,lparam
 	lea	eax,[edi+1]
 	je	.found
 	mov	eax,esi
-    .found:
+      .found:
 	mov	dword [eax],'_.au'
 	mov	word [eax+4],'3'
 	push	OF_READ
@@ -523,7 +539,7 @@ section '.data' data readable writeable
   _pi PROCESS_INFORMATION
   _si STARTUPINFO
 
-  mutex rd 1
+  armmutex rd 1
   argc rd 1
   font rd 1
 

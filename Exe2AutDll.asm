@@ -214,49 +214,29 @@ section '.code' code readable executable
 	jmp	.err
     .3_3_0_0:
 	mov	cl,[eax+_modrm_3_3_0_0]
-	mov	[modrm],cl
 	add	eax,_count_3_3_0_0
-	push	5
-	push	decompile
-	push	eax
-	call	DetourFunc
 	jmp	.fin
     .3_3_7_7:
 	mov	cl,[eax+_modrm_3_3_7_7]
-	mov	[modrm],cl
 	add	eax,_count_3_3_7_7
-	push	5
-	push	decompile
-	push	eax
-	call	DetourFunc
 	jmp	.fin
     .3_3_7_0:
 	mov	cl,[eax+_modrm_3_3_7_0]
-	mov	[modrm],cl
 	add	eax,_count_3_3_7_0
-	push	5
-	push	decompile
-	push	eax
-	call	DetourFunc
 	jmp	.fin
     .3_2_10_0:
 	mov	cl,[eax+_modrm_3_2_10_0]
-	mov	[modrm],cl
 	add	eax,_count_3_2_10_0
-	push	5
-	push	decompile
-	push	eax
-	call	DetourFunc
 	jmp	.fin
     .3_2_8_0:
 	mov	cl,[eax+_modrm_3_2_8_0]
-	mov	[modrm],cl
 	add	eax,_count_3_2_8_0
+    .fin:
+	mov	[modrm],cl
 	push	5
 	push	decompile
 	push	eax
 	call	DetourFunc
-    .fin:
 	mov	eax,[esp+8]
 	push	_size_open2
 	push	_mask_open2
@@ -359,22 +339,17 @@ section '.code' code readable executable
 	jmp	.err
     .3_2_10_0:
 	mov	cl,[eax+_modrm_3_2_10_0]
-	mov	[modrm],cl
 	add	eax,_count_3_2_10_0
-	push	5
-	push	decompile
-	push	eax
-	call	DetourFunc
 	jmp	.fin
     .3_2_8_0:
 	mov	cl,[eax+_modrm_3_2_8_0]
-	mov	[modrm],cl
 	add	eax,_count_3_2_8_0
+    .fin:
+	mov	[modrm],cl
 	push	5
 	push	decompile
 	push	eax
 	call	DetourFunc
-    .fin:
 	mov	eax,[esp+8]
 	push	_size_open
 	push	_mask_open
