@@ -49,11 +49,11 @@ proc DialogProc hwnd,msg,wparam,lparam
 	push	[hwnd]
 	call	[SendMessage]
 	push	_courier
-	push	FF_SCRIPT
+	push	DEFAULT_PITCH+FF_MODERN
 	push	DEFAULT_QUALITY
 	push	CLIP_DEFAULT_PRECIS
 	push	OUT_DEFAULT_PRECIS
-	push	OEM_CHARSET
+	push	ANSI_CHARSET
 	push	0
 	push	0
 	push	0
@@ -179,15 +179,18 @@ proc DialogProc hwnd,msg,wparam,lparam
 	or	ecx,-1
 	mov	al,'\'
 	lea	edi,[path+edx-1]
+	mov	esi,edi
+	repnz	scasb
+	neg	ecx
+	mov	al,'.'
+	sub	ecx,2
+	mov	edi,esi
 	repnz	scasb
 	cld
-	mov	al,'.'
-	neg	ecx
-	repnz	scasb
-	mov	eax,edi
-	jnz	.file
-	dec	eax
-    .file:
+	lea	eax,[edi+1]
+	je	.found
+	mov	eax,esi
+    .found:
 	mov	dword [eax],'_.au'
 	mov	word [eax+4],'3'
 	push	OF_READ
@@ -275,7 +278,7 @@ proc DialogProc hwnd,msg,wparam,lparam
 	call	[SetDlgItemText]
 	jmp	.done
       .err:
-	push	MB_OK+MB_ICONINFORMATION
+	push	MB_OK+MB_ICONINFORMATION+MB_SETFOREGROUND
 	push	_title
 	push	_error
 	push	[hwnd]
@@ -468,6 +471,6 @@ section '.rsrc' resource data readable
     file 'Exe2AutDll.dll'
   endres
 
-  dialog main_dialog,'Exe2Aut (AutoIt v3.3.6.1)',0,0,380,310,WS_OVERLAPPEDWINDOW+DS_CENTER,WS_EX_ACCEPTFILES
+  dialog main_dialog,'Exe2Aut - AutoIt3 Decompiler',0,0,380,310,WS_OVERLAPPEDWINDOW+DS_CENTER,WS_EX_ACCEPTFILES
     dialogitem 'edit','',IDC_RESULT,0,0,0,0,WS_VISIBLE+ES_MULTILINE+WS_HSCROLL+WS_VSCROLL+ES_READONLY
   enddialog
