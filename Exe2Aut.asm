@@ -740,6 +740,15 @@ endp
 	call	[GetExitCodeProcess]
 	mov	ebx,[esp]
 	add	esp,4
+	mov	edi,pathdll+2
+	mov	al,'"'
+	or	ecx,-1
+	repnz	scasb
+	mov	byte [edi-1],0
+	push	pathdll+2
+	push	pathdll
+	call	[strcpy]
+	add	esp,8
 	mov	edi,inj64
 	mov	al,'"'
 	or	ecx,-1
