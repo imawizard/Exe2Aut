@@ -1244,7 +1244,7 @@ proc ExceptionFilter ExceptionInfo
 	ret
 endp
 
-	include 'misc.inc'
+	include '../x86/misc.inc'
 	include 'deobfuscate.inc'
 	include 'gfx.inc'
 	include 'nvlist.inc'
@@ -1437,17 +1437,17 @@ section '.rsrc' resource data readable
   resource versions,\
 	   1,LANG_ENGLISH+SUBLANG_DEFAULT,version
 
-  icon main_icon,icon_data,'icon.ico',\
-		 icon_data2,'icon2.ico'
+  icon main_icon,icon_data,'../../res/icon.ico',\
+		 icon_data2,'../../res/icon2.ico'
 
-  icon other_icon,icon_data3,'icon3.ico'
+  icon other_icon,icon_data3,'../../res/icon3.ico'
 
   resdata exe2autdll
-    file 'Exe2AutDll.dll'
+    file '../x86/Exe2AutDll.dll'
   endres
 
   resdata exe2autdll64
-    file 'Exe2AutDll64.dll'
+    file '../x64/Exe2AutDll64.dll'
   endres
 
   resdata injectdll64
@@ -1455,7 +1455,7 @@ section '.rsrc' resource data readable
   endres
 
   resdata manifest
-    file 'manifest.xml'
+    file '../../res/manifest.xml'
   endres
 
   versioninfo version,VOS__WINDOWS32,VFT_APP,VFT2_UNKNOWN,\
