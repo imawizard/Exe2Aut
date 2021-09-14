@@ -1,5 +1,6 @@
 
 ERROR_ALREADY_EXISTS = 0B7h
+
 MUTEX_ALL_ACCESS     = 1F0001h
 SEMAPHORE_ALL_ACCESS = 1F0003h
 
@@ -13,7 +14,7 @@ struct MEMORY_BASIC_INFORMATION
   Type		    rd 1
 ends
 
-FindPattern:
+proc FindPattern
 	push	ebx esi edi
 	mov	edi,[esp+10h]
 	mov	ecx,[esp+14h]
@@ -50,8 +51,9 @@ FindPattern:
     .fin:
 	pop	edi esi ebx
 	retn	14h
+endp
 
-RFindPattern:
+proc RFindPattern
 	push	ebx esi edi
 	mov	edi,[esp+10h]
 	mov	ecx,[esp+14h]
@@ -93,8 +95,9 @@ RFindPattern:
     .fin:
 	pop	edi esi ebx
 	retn	14h
+endp
 
-IsMutex:
+proc IsMutex
 	push	dword [esp+4]
 	push	0
 	push	MUTEX_ALL_ACCESS
@@ -103,8 +106,9 @@ IsMutex:
 	setnz	al
 	and	eax,1
 	retn	4
+endp
 
-MakeDir:
+proc MakeDir
 	push	esi edi
 	mov	esi,[esp+0Ch]
 	mov	edi,[esp+0Ch]
@@ -128,6 +132,7 @@ MakeDir:
     .fin:
 	pop	edi esi
 	retn	4
+endp
 
 proc alloc_base address
   local mbi:MEMORY_BASIC_INFORMATION

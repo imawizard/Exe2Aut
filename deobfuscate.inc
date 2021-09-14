@@ -1313,6 +1313,6 @@ macro deobfus_udata
   tblname rb 256
   tblsep rb 600
 
-  _buf rb 8000h
-  _var rb 3000
+  _buf rb 10000h
+  _var rb 1000h
  }

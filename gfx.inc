@@ -309,7 +309,6 @@ endp
 
 macro gfx_idata
  {
-
   _terminal db 'Terminal',0
   _lame db 'wow, this looks so lame'
   lamelen = $-_lame
@@ -317,12 +316,10 @@ macro gfx_idata
   excuselen = $-_excuse
 
   GFX_Spiked db 14 dup (2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,4,6,8,10,10,10,10,10,10,10,10,8,6,4)
-
  }
 
 macro gfx_udata
  {
-
   orbs rb sizeof.ORB*ORBS
 
   GFX_hDC rd 1
@@ -339,5 +336,4 @@ macro gfx_udata
   GFX_TextColor rd 1
 
   radf rq 1
-
  }

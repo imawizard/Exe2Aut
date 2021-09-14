@@ -586,6 +586,7 @@ proc decompile_thread len
 	push	WM_CLOSE
 	push	[progress_hwnd]
 	call	[SendMessage]
+	mov	[progress_hwnd],0
 	ret
 endp
 

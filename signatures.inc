@@ -1,16 +1,16 @@
 
 macro random x,y
- { if ~ defined random_seed
-    random_seed=%t
+ { if ~ defined _random_seed
+    _random_seed=%t
    end if
-   random_seed=((random_seed*8088405h+1) shr 16) and $FFFF'FFFF
+   _random_seed=((_random_seed*8088405h+1) shr 16) and $FFFF'FFFF
    if x eq
-    rand=random_seed
+    _rand=_random_seed
    else
     if y eq
-     rand=random_seed mod x
+     _rand=_random_seed mod x
     else
-     rand=random_seed mod (y-x+1)+x
+     _rand=_random_seed mod (y-x+1)+x
     end if
    end if }
 
@@ -26,10 +26,10 @@ macro _mask ver,mask,modrm,count
     load c from _mask#ver+%-1
     if c='x'
      random 0,9
-     while rand=1
+     while _rand=1
       random 0,9
      end while
-     c=rand
+     c=_rand
     else
      c=1
     end if
