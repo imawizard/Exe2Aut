@@ -615,7 +615,7 @@ section '.code' code readable executable
 	cmp	[enum_mod],1
 	jnz	.leading_space
 	mov	[enum_mod],0
-	mov	r8d,0
+	mov	r8d,1
 	or	rdx,-1
 	mov	rcx,rdi
 	call	[_llseek]
@@ -667,7 +667,7 @@ section '.code' code readable executable
 	dec	eax
       .with_trailing:
 	lea	ecx,[rbx+rax]
-	mov	r12,r13
+	mov	rdx,r13
       .write_keyword:
 	mov	r8,rcx
 	mov	rcx,rdi
