@@ -4,6 +4,29 @@ ERROR_ALREADY_EXISTS = 0B7h
 MUTEX_ALL_ACCESS     = 1F0001h
 SEMAPHORE_ALL_ACCESS = 1F0003h
 
+SCS_64BIT_BINARY     = 6
+
+PBS_MARQUEE	     = 8
+PBM_SETMARQUEE	     = WM_USER+10
+HTCAPTION	     = 2
+ECM_FIRST	     = 1500h
+EM_SHOWBALLOONTIP    = ECM_FIRST+3
+
+TTI_NONE	     = 0
+TTI_INFO	     = 1
+TTI_WARNING	     = 2
+TTI_ERROR	     = 3
+TTI_INFO_LARGE	     = 4
+TTI_WARNING_LARGE    = 5
+TTI_ERROR_LARGE      = 6
+
+struct EDITBALLOONTIP
+  cbStruct rd 1
+  pszTitle rd 1
+  pszText  rd 1
+  ttiIcon  rd 1
+ends
+
 struct MEMORY_BASIC_INFORMATION
   BaseAddress	    rd 1
   AllocationBase    rd 1
@@ -314,3 +337,94 @@ proc InjectDll pid,dll
 	pop	edi esi ebx
 	ret
 endp
+
+proc LoadResfile name,type,size
+	push	edi
+	push	[type]
+	push	[name]
+	push	0
+	call	[FindResource]
+	test	eax,eax
+	je	.fin
+	mov	edi,eax
+	push	eax
+	push	0
+	call	[SizeofResource]
+	mov	ecx,[size]
+	test	ecx,ecx
+	je	.noptr
+	mov	[ecx],eax
+    .noptr:
+	push	edi
+	push	0
+	call	[LoadResource]
+	test	eax,eax
+	je	.fin
+	push	eax
+	call	[LockResource]
+    .fin:
+	pop	edi
+	ret
+endp
+
+proc CalcMid parent,child
+  local rect:RECT
+	lea	eax,[rect]
+	push	eax
+	push	[parent]
+	call	[GetClientRect]
+	shr	[rect.right],1
+	shr	[rect.bottom],1
+	lea	eax,[rect+8]
+	push	eax
+	push	[parent]
+	call	[ClientToScreen]
+	push	[rect.right]
+	push	[rect.bottom]
+	lea	eax,[rect]
+	push	eax
+	push	[child]
+	call	[GetClientRect]
+	shr	[rect.right],1
+	shr	[rect.bottom],1
+	pop	edx
+	pop	eax
+	sub	edx,[rect.bottom]
+	sub	eax,[rect.right]
+	ret
+endp
+
+proc randomize
+	xor	eax,eax
+	cpuid
+	rdtsc
+	mov	[randseed],eax
+	retn
+endp
+
+proc rand
+	imul	eax,[randseed],8088405h
+	inc	eax
+	mov	[randseed],eax
+	retn
+endp
+
+proc random
+	xchg	eax,ecx
+	imul	eax,[randseed],8088405h
+	inc	eax
+	mov	[randseed],eax
+	xor	edx,edx
+	div	ecx
+	xchg	eax,edx
+	retn
+endp
+
+macro misc_idata
+ {
+ }
+
+macro misc_udata
+ {
+   randseed rd 1
+ }

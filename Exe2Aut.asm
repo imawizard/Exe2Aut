@@ -4,28 +4,6 @@ entry start
 
 include 'Exe2Aut.inc'
 
-ERROR_ALREADY_EXISTS = 0B7h
-SCS_64BIT_BINARY     = 6
-PBS_MARQUEE	     = 8
-PBM_SETMARQUEE	     = WM_USER+10
-HTCAPTION	     = 2
-ECM_FIRST	     = 1500h
-EM_SHOWBALLOONTIP    = ECM_FIRST+3
-TTI_NONE	     = 0
-TTI_INFO	     = 1
-TTI_WARNING	     = 2
-TTI_ERROR	     = 3
-TTI_INFO_LARGE	     = 4
-TTI_WARNING_LARGE    = 5
-TTI_ERROR_LARGE      = 6
-
-struct EDITBALLOONTIP
-  cbStruct rd 1
-  pszTitle rd 1
-  pszText  rd 1
-  ttiIcon  rd 1
-ends
-
 section '.code' code readable executable
 
   start:
@@ -1081,165 +1059,7 @@ proc AboutProc hwnd,msg,wparam,lparam
 	ret
 endp
 
-proc LoadResfile name,type,size
-	push	edi
-	push	[type]
-	push	[name]
-	push	0
-	call	[FindResource]
-	test	eax,eax
-	je	.fin
-	mov	edi,eax
-	push	eax
-	push	0
-	call	[SizeofResource]
-	mov	ecx,[size]
-	test	ecx,ecx
-	je	.noptr
-	mov	[ecx],eax
-    .noptr:
-	push	edi
-	push	0
-	call	[LoadResource]
-	test	eax,eax
-	je	.fin
-	push	eax
-	call	[LockResource]
-    .fin:
-	pop	edi
-	ret
-endp
-
-proc InjectDll pid,dll
-	push	ebx esi edi
-	push	[pid]
-	push	0
-	push	PROCESS_ALL_ACCESS
-	call	[OpenProcess]
-	test	eax,eax
-	je	.err
-	mov	edi,eax
-	push	[dll]
-	call	[lstrlen]
-	lea	esi,[eax+1]
-	push	PAGE_EXECUTE_READWRITE
-	push	MEM_RESERVE+MEM_COMMIT
-	push	esi
-	push	0
-	push	edi
-	call	[VirtualAllocEx]
-	test	eax,eax
-	je	.close
-	mov	ebx,eax
-	push	0
-	push	esi
-	push	[dll]
-	push	ebx
-	push	edi
-	call	[WriteProcessMemory]
-	call	.kernel32
-	db 'kernel32',0
-      .kernel32:
-	call	[GetModuleHandle]
-	call	.loadlibrary
-	db 'LoadLibraryA',0
-      .loadlibrary:
-	push	eax
-	call	[GetProcAddress]
-	xor	ecx,ecx
-	push	ecx
-	push	ecx
-	push	ebx
-	push	eax
-	push	ecx
-	push	ecx
-	push	edi
-	call	[CreateRemoteThread]
-	xor	esi,esi
-	test	eax,eax
-	je	.cleanup
-	mov	esi,eax
-	push	-1
-	push	esi
-	call	[WaitForSingleObject]
-	sub	esp,4
-	push	esp
-	push	esi
-	call	[GetExitCodeThread]
-	push	esi
-	call	[CloseHandle]
-	mov	esi,[esp]
-	add	esp,4
-    .cleanup:
-	push	MEM_RELEASE
-	push	0
-	push	ebx
-	push	edi
-	call	[VirtualFreeEx]
-	push	edi
-	call	[CloseHandle]
-	mov	eax,esi
-	jmp	.fin
-    .close:
-	push	edi
-	call	[CloseHandle]
-    .err:
-	xor	eax,eax
-    .fin:
-	pop	edi esi ebx
-	ret
-endp
-
-proc CalcMid parent,child
-  local rect:RECT
-	lea	eax,[rect]
-	push	eax
-	push	[parent]
-	call	[GetClientRect]
-	shr	[rect.right],1
-	shr	[rect.bottom],1
-	lea	eax,[rect+8]
-	push	eax
-	push	[parent]
-	call	[ClientToScreen]
-	push	[rect.right]
-	push	[rect.bottom]
-	lea	eax,[rect]
-	push	eax
-	push	[child]
-	call	[GetClientRect]
-	shr	[rect.right],1
-	shr	[rect.bottom],1
-	pop	edx
-	pop	eax
-	sub	edx,[rect.bottom]
-	sub	eax,[rect.right]
-	ret
-endp
-
-randomize:
-	xor	eax,eax
-	cpuid
-	rdtsc
-	mov	[randseed],eax
-	retn
-
-rand:
-	imul	eax,[randseed],8088405h
-	inc	eax
-	mov	[randseed],eax
-	retn
-
-random:
-	xchg	eax,ecx
-	imul	eax,[randseed],8088405h
-	inc	eax
-	mov	[randseed],eax
-	xor	edx,edx
-	div	ecx
-	xchg	eax,edx
-	retn
-
+	include 'misc.inc'
 	include 'deobfuscate.inc'
 	include 'gfx.inc'
 	include 'nvlist.inc'
@@ -1297,6 +1117,7 @@ section '.data' data readable writeable
 
   ebt EDITBALLOONTIP sizeof.EDITBALLOONTIP,_wtitle,_compiled_macro,TTI_INFO
 
+  misc_idata
   deobfus_idata
   gfx_idata
 
@@ -1320,8 +1141,7 @@ section '.data' data readable writeable
 
   mp MSGBOXPARAMS
 
-  randseed rd 1
-
+  misc_udata
   deobfus_udata
   gfx_udata
 
