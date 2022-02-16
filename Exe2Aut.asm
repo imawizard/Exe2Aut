@@ -1292,7 +1292,8 @@ random:
 
 section '.data' data readable writeable
 
-  VERSION equ 'Exe2Autv6BETA'
+  VERSION equ 'Exe2Autv6RC'
+  VERSION_NUM equ '6.1'
   WINDOW_TITLE equ 'Exe2Aut - AutoIt3 Decompiler'
 
   NO_3264BIT   = 1
@@ -1481,8 +1482,8 @@ section '.rsrc' resource data readable
 		      LANG_ENGLISH+SUBLANG_DEFAULT,0,\
 	      'ProductName','Exe2Aut',\
 	      'FileDescription','Tiny AutoIt3 Decompiler',\
-	      'FileVersion','6',\
-	      'ProductVersion','v6'
+	      'FileVersion',VERSION_NUM,\
+	      'ProductVersion',<'v',VERSION_NUM>
 
   dialog main_dialog,WINDOW_TITLE,0,0,380,310,WS_OVERLAPPEDWINDOW+DS_CENTER,WS_EX_ACCEPTFILES
     dialogitem 'edit','',IDC_RESULT,0,0,0,0,WS_VISIBLE+ES_MULTILINE+WS_HSCROLL+WS_VSCROLL+ES_READONLY
