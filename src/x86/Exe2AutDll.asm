@@ -651,7 +651,7 @@ endp
 	push	buf
 	cmp	[exearc_v2],1
 	je	.ebxptr
-	push	oRead
+	push	ebx
       .ebxptr:
 	call	[EXEArc_Extract]
 	pop	edi esi ebx

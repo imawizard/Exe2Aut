@@ -88,6 +88,10 @@ struct MEMORY_BASIC_INFORMATION
   Type		    rd 1
 ends
 
+if ~ defined MASK_IGNORE
+ MASK_IGNORE = '?'
+end if
+
 proc FindPattern
 	push	ebx esi edi
 	mov	edi,[esp+10h]
@@ -114,7 +118,7 @@ proc FindPattern
 	mov	eax,[esp]
 	sub	eax,edi
 	neg	eax
-	cmp	byte [edx+eax],1
+	cmp	byte [edx+eax],MASK_IGNORE
 	je	.compare
     .no_match:
 	pop	edi
@@ -156,7 +160,7 @@ proc RFindPattern
 	mov	eax,[esp]
 	sub	eax,edi
 	neg	eax
-	cmp	byte [edx+eax],1
+	cmp	byte [edx+eax],MASK_IGNORE
 	je	.compare
     .no_match:
 	pop	edi
