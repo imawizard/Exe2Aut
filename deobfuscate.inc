@@ -11,6 +11,10 @@
 
 proc deobfuscate _source,_length,_deobfu:byte,_rename:byte,_filein:byte,_compil:byte
 	push	esi
+	push	_deobfuscating
+	push	state
+	call	[strcpy]
+	add	esp,8
 	mov	eax,[_source]
 	mov	ecx,[_length]
 	mov	[source],eax

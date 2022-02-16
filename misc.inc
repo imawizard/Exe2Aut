@@ -27,6 +27,57 @@ struct EDITBALLOONTIP
   ttiIcon  rd 1
 ends
 
+struct EXCEPTION_POINTERS
+  ExceptionRecord rd 1
+  ContextRecord   rd 1
+ends
+
+SIZE_OF_80387_REGISTERS = 80
+
+struct FLOATING_SAVE_AREA
+  ControlWord	rd 1
+  StatusWord	rd 1
+  TagWord	rd 1
+  ErrorOffset	rd 1
+  ErrorSelector rd 1
+  DataOffset	rd 1
+  DataSelector	rd 1
+  RegisterArea	rb 1
+		rb SIZE_OF_80387_REGISTERS-1
+  Cr0NpxState	rd 1
+ends
+
+MAXIMUM_SUPPORTED_EXTENSION = 512
+
+struct CONTEXT
+  ContextFlags	    rd 1
+  Dr0		    rd 1
+  Dr1		    rd 1
+  Dr2		    rd 1
+  Dr3		    rd 1
+  Dr6		    rd 1
+  Dr7		    rd 1
+  FloatSave	    FLOATING_SAVE_AREA
+  SegGs 	    rd 1
+  SegFs 	    rd 1
+  SegEs 	    rd 1
+  SegDs 	    rd 1
+  Edi		    rd 1
+  Esi		    rd 1
+  Ebx		    rd 1
+  Edx		    rd 1
+  Ecx		    rd 1
+  Eax		    rd 1
+  Ebp		    rd 1
+  Eip		    rd 1
+  SegCs 	    rd 1
+  EFlags	    rd 1
+  Esp		    rd 1
+  SegSs 	    rd 1
+  ExtendedRegisters rb 1
+		    rb MAXIMUM_SUPPORTED_EXTENSION-1
+ends
+
 struct MEMORY_BASIC_INFORMATION
   BaseAddress	    rd 1
   AllocationBase    rd 1
