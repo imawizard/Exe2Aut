@@ -1382,6 +1382,10 @@ section '.idata' import data readable
 
 section '.rsrc' resource data readable
 
+  RES_PATH	 equ '../../res/'
+  RES_PATH_BEGIN fix match RES_PATH,RES_PATH {
+  RES_PATH_END	 fix }
+
   IDI_ICON1    = 1
   IDI_ICON2    = 2
   IDR_DLL      = 4
@@ -1437,10 +1441,12 @@ section '.rsrc' resource data readable
   resource versions,\
 	   1,LANG_ENGLISH+SUBLANG_DEFAULT,version
 
-  icon main_icon,icon_data,'../../res/icon.ico',\
-		 icon_data2,'../../res/icon2.ico'
+  RES_PATH_BEGIN
 
-  icon other_icon,icon_data3,'../../res/icon3.ico'
+  icon main_icon,icon_data,RES_PATH#'icon.ico',\
+		 icon_data2,RES_PATH#'icon2.ico'
+
+  icon other_icon,icon_data3,RES_PATH#'icon3.ico'
 
   resdata exe2autdll
     file '../x86/Exe2AutDll.dll'
@@ -1455,8 +1461,10 @@ section '.rsrc' resource data readable
   endres
 
   resdata manifest
-    file '../../res/manifest.xml'
+    file RES_PATH#'manifest.xml'
   endres
+
+  RES_PATH_END
 
   versioninfo version,VOS__WINDOWS32,VFT_APP,VFT2_UNKNOWN,\
 		      LANG_ENGLISH+SUBLANG_DEFAULT,0,\
