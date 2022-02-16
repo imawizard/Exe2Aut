@@ -20,6 +20,7 @@ section '.code' code readable executable
 	call	[GetLastError]
 	cmp	eax,ERROR_ALREADY_EXISTS
 	je	.err
+	call	ShowWarning
 	call	[GetCommandLineW]
 	push	argc
 	push	eax
@@ -169,6 +170,44 @@ section '.code' code readable executable
 	call	[MessageBox]
 	mov	eax,1
 	jmp	.fin
+
+proc ShowWarning
+  local hkey:DWORD,value:DWORD,cb:DWORD
+	lea	eax,[hkey]
+	push	eax
+	push	KEY_ALL_ACCESS
+	push	0
+	push	_reg_key
+	push	HKEY_LOCAL_MACHINE
+	call	[RegOpenKeyEx]
+	test	eax,eax
+	jnz	.show
+	lea	eax,[cb]
+	lea	edx,[value]
+	mov	dword [eax],4
+	push	eax
+	push	edx
+	push	0
+	push	0
+	push	_reg_value
+	push	[hkey]
+	call	[RegQueryValueEx]
+	push	[hkey]
+	call	[RegCloseKey]
+	cmp	[value],1
+	je	.fin
+    .show:
+	push	0
+	call	[GetModuleHandle]
+	push	0
+	push	WarningProc
+	push	0
+	push	IDD_WARNING
+	push	eax
+	call	[DialogBoxParam]
+    .fin:
+	ret
+endp
 
   UponStart:
 	push	100
@@ -1079,6 +1118,74 @@ proc AboutProc hwnd,msg,wparam,lparam
 	ret
 endp
 
+proc WarningProc hwnd,msg,wparam,lparam
+  local hkey:DWORD,value:DWORD
+	cmp	[msg],WM_INITDIALOG
+	je	.wm_initdialog
+	cmp	[msg],WM_COMMAND
+	je	.wm_command
+	cmp	[msg],WM_CLOSE
+	je	.wm_close
+	xor	eax,eax
+	jmp	.fin
+    .wm_initdialog:
+	push	0
+	call	[GetModuleHandle]
+	push	0
+	push	16
+	push	16
+	push	IMAGE_ICON
+	push	IDI_ICON3
+	push	eax
+	call	[LoadImage]
+	push	eax
+	push	0
+	push	WM_SETICON
+	push	[hwnd]
+	call	[SendMessage]
+	jmp	.done
+    .wm_command:
+	cmp	[wparam],IDCANCEL
+	je	.wm_close
+	cmp	[wparam],BN_CLICKED shl 16+IDOK
+	jnz	.done
+	push	IDC_DONTSHOW
+	push	[hwnd]
+	call	[IsDlgButtonChecked]
+	cmp	eax,BST_CHECKED
+	jnz	.wm_close
+	mov	[value],1
+	lea	eax,[hkey]
+	push	0
+	push	eax
+	push	0
+	push	KEY_ALL_ACCESS
+	push	REG_OPTION_NON_VOLATILE
+	push	0
+	push	0
+	push	_reg_key
+	push	HKEY_LOCAL_MACHINE
+	call	[RegCreateKeyEx]
+	lea	eax,[value]
+	push	4
+	push	eax
+	push	REG_DWORD
+	push	0
+	push	_reg_value
+	push	[hkey]
+	call	[RegSetValueEx]
+	push	[hkey]
+	call	[RegCloseKey]
+    .wm_close:
+	push	0
+	push	[hwnd]
+	call	[EndDialog]
+    .done:
+	mov	eax,1
+    .fin:
+	ret
+endp
+
 proc CrashProc hwnd,msg,wparam,lparam
   local buf[200h]:BYTE,buf2[33]:BYTE
 	cmp	[msg],WM_INITDIALOG
@@ -1304,6 +1411,8 @@ section '.data' data readable writeable
   _idle db 'idle',0
   _decompiling db 'decompiling',0
   _deobfuscating db 'deobfuscating',0
+  _reg_key db 'SOFTWARE\Exe2Aut',0
+  _reg_value db 'DontShowAgain',0
 
   s_deobfusc dd BST_CHECKED
   s_rename dd 0
@@ -1347,6 +1456,7 @@ section '.idata' import data readable
   library kernel32,'KERNEL32.DLL',\
 	  user32,'USER32.DLL',\
 	  gdi32,'GDI32.DLL',\
+	  advapi32,'ADVAPI32.DLL',\
 	  shell32,'SHELL32.DLL',\
 	  msvcrt,'MSVCRT.DLL',\
 	  shlwapi,'SHLWAPI.DLL'
@@ -1354,6 +1464,7 @@ section '.idata' import data readable
   include 'api\kernel32.inc'
   include 'api\user32.inc'
   include 'api\gdi32.inc'
+  include 'api\advapi32.inc'
 
   import shell32,\
 	 CommandLineToArgvW,'CommandLineToArgvW',\
@@ -1388,14 +1499,16 @@ section '.rsrc' resource data readable
 
   IDI_ICON1    = 1
   IDI_ICON2    = 2
-  IDR_DLL      = 4
-  IDR_DLL64    = 5
-  IDR_INJ64    = 6
+  IDI_ICON3    = 3
+  IDR_DLL      = 5
+  IDR_DLL64    = 6
+  IDR_INJ64    = 7
   IDD_MAIN     = 100
   IDD_DEOBFU   = 101
   IDD_PROGRESS = 102
   IDD_ABOUT    = 103
-  IDD_CRASH    = 104
+  IDD_WARNING  = 104
+  IDD_CRASH    = 105
   IDC_RESULT   = 1000
   IDC_SAVE     = 1001
   IDC_DEOBFUSC = 1002
@@ -1403,8 +1516,9 @@ section '.rsrc' resource data readable
   IDC_FILEINST = 1004
   IDC_COMPILED = 1005
   IDC_PROGRESS = 1006
-  IDC_CRASH    = 1007
-  IDC_EXIT     = 1008
+  IDC_DONTSHOW = 1007
+  IDC_CRASH    = 1008
+  IDC_EXIT     = 1009
   IDM_ARMDB    = 2000
   IDM_NOFILES  = 2001
   IDM_DEOBFU   = 2002
@@ -1420,19 +1534,22 @@ section '.rsrc' resource data readable
 	   1,LANG_ENGLISH+SUBLANG_DEFAULT,icon_data,\
 	   2,LANG_ENGLISH+SUBLANG_DEFAULT,icon_data2,\
 	   3,LANG_ENGLISH+SUBLANG_DEFAULT,icon_data3,\
+	   4,LANG_ENGLISH+SUBLANG_DEFAULT,icon_data4,\
 	   IDR_DLL,LANG_ENGLISH+SUBLANG_DEFAULT,exe2autdll,\
 	   IDR_DLL64,LANG_ENGLISH+SUBLANG_DEFAULT,exe2autdll64,\
 	   IDR_INJ64,LANG_ENGLISH+SUBLANG_DEFAULT,injectdll64
 
   resource group_icons,\
 	   IDI_ICON1,LANG_ENGLISH+SUBLANG_DEFAULT,main_icon,\
-	   IDI_ICON2,LANG_ENGLISH+SUBLANG_DEFAULT,other_icon
+	   IDI_ICON2,LANG_ENGLISH+SUBLANG_DEFAULT,other_icon,\
+	   IDI_ICON3,LANG_ENGLISH+SUBLANG_DEFAULT,warn_icon
 
   resource dialogs,\
 	   IDD_MAIN,LANG_ENGLISH+SUBLANG_DEFAULT,main_dialog,\
 	   IDD_DEOBFU,LANG_ENGLISH+SUBLANG_DEFAULT,deobfu_dialog,\
 	   IDD_PROGRESS,LANG_ENGLISH+SUBLANG_DEFAULT,progress_dialog,\
 	   IDD_ABOUT,LANG_ENGLISH+SUBLANG_DEFAULT,about_dialog,\
+	   IDD_WARNING,LANG_ENGLISH+SUBLANG_DEFAULT,warning_dialog,\
 	   IDD_CRASH,LANG_ENGLISH+SUBLANG_DEFAULT,crash_dialog
 
   resource manifests,\
@@ -1447,6 +1564,8 @@ section '.rsrc' resource data readable
 		 icon_data2,RES_PATH#'icon2.ico'
 
   icon other_icon,icon_data3,RES_PATH#'icon3.ico'
+
+  icon warn_icon,icon_data4,RES_PATH#'icon4.ico'
 
   resdata exe2autdll
     file '../x86/Exe2AutDll.dll'
@@ -1499,6 +1618,13 @@ section '.rsrc' resource data readable
   enddialog
 
   dialog about_dialog,'',0,0,176,100,WS_POPUP
+  enddialog
+
+  dialog warning_dialog,WINDOW_TITLE,0,0,316,56,WS_POPUP+WS_CAPTION+WS_SYSMENU+WS_MINIMIZEBOX+DS_CENTER,WS_EX_APPWINDOW+WS_EX_TOOLWINDOW
+    dialogitem 'button','',-1,6,29,304,1,WS_VISIBLE+BS_GROUPBOX
+    dialogitem 'static','Dropping modified or non-AutoIt files into Exe2Aut could result in harmful code being executed, so use it with caution.',-1,10,10,296,16,WS_VISIBLE
+    dialogitem 'button','Don''t show again',IDC_DONTSHOW,6,36,74,20,WS_VISIBLE+BS_FLAT+BS_AUTOCHECKBOX,
+    dialogitem 'button','OK',IDOK,270,36,40,16,WS_VISIBLE,WS_EX_STATICEDGE
   enddialog
 
   dialog crash_dialog,WINDOW_TITLE,0,0,230,80,WS_POPUP+WS_CAPTION+WS_MINIMIZEBOX+DS_CENTER
