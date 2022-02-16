@@ -1359,8 +1359,8 @@ endp
 
 section '.data' data readable writeable
 
-  VERSION equ 'Exe2Autv6RC'
-  VERSION_NUM equ '6.1'
+  VERSION      equ 'Exe2Autv7'
+  VERSION_NUM  equ '7'
   WINDOW_TITLE equ 'Exe2Aut - AutoIt3 Decompiler'
 
   NO_3264BIT   = 1

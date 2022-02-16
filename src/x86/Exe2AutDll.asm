@@ -1205,7 +1205,7 @@ endp
 
 section '.data' data readable writeable
 
-  VERSION equ 'Exe2Autv6RC'
+  VERSION equ 'Exe2Autv7'
 
   _kernel32 db 'kernel32.dll',0
   _user32 db 'user32.dll',0
