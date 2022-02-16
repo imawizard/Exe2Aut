@@ -24,11 +24,11 @@ section '.code' code readable executable
 	push	_loaded
 	call	IsMutex
 	test	eax,eax
-	jnz	.decompile
+	jnz	.decompile_armadillo
 	push	_armadillo
 	call	IsMutex
 	test	eax,eax
-	jnz	.armadillo
+	jnz	.prepare_armadillo
     .decompile:
 	push	_nofiles
 	call	IsMutex
@@ -38,7 +38,10 @@ section '.code' code readable executable
 	hookapi ~_user32:_spia->MySystemParametersInfoA
 	mov	[_SystemParametersInfoA],eax
 	jmp	.fin
-    .armadillo:
+    .decompile_armadillo:
+	mov	[armadillo],1
+	jmp	.decompile
+    .prepare_armadillo:
 	push	_loaded
 	push	0
 	push	0
@@ -127,9 +130,7 @@ endp
 
   hook_critical_part:
 	push	eax
-	push	_armadillo
-	call	IsMutex
-	test	eax,eax
+	cmp	[armadillo],0
 	je	.hook
 	mov	eax,[esp]
 	lea	ecx,[eax+1]
@@ -191,6 +192,8 @@ endp
 	retn
 
   get_size_delta:
+	cmp	[armadillo],1
+	je	.fin
 	push	ebx
 	mov	ecx,edx
 	mov	ebx,edx
@@ -202,6 +205,7 @@ endp
 	sub	eax,ebx
 	mov	[size_delta],eax
 	pop	ebx
+    .fin:
 	retn
 
   MyGetCommandLineW:
@@ -1199,6 +1203,8 @@ section '.data' data readable writeable
   _CreateProcessW rd 1
   _ReadProcessMemory rd 1
   already rb 1
+
+  armadillo rd 1
   process rd 1
   address rd 1
 
