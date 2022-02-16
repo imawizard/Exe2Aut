@@ -225,51 +225,11 @@ endp
 	push	.handler
 	push	dword [fs:0]
 	mov	[fs:0],esp
-	mov	eax,[esp+8]
-	push	_size_3_3_0_0
-	push	_mask_3_3_0_0
-	push	_ptrn_3_3_0_0
-	push	[size_delta]		;20000h
-	push	eax
-	call	FindPattern
-	test	eax,eax
-	jnz	.3_3_0_0
-	mov	eax,[esp+8]
-	push	_size_3_3_7_7
-	push	_mask_3_3_7_7
-	push	_ptrn_3_3_7_7
-	push	[size_delta]		;20000h
-	push	eax
-	call	FindPattern
-	test	eax,eax
-	jnz	.3_3_7_7
-	mov	eax,[esp+8]
-	push	_size_3_3_7_0
-	push	_mask_3_3_7_0
-	push	_ptrn_3_3_7_0
-	push	[size_delta+4]		;58000h
-	push	eax
-	call	RFindPattern
-	test	eax,eax
-	jnz	.3_3_7_0
-	mov	eax,[esp+8]
-	push	_size_3_2_10_0
-	push	_mask_3_2_10_0
-	push	_ptrn_3_2_10_0
-	push	[size_delta+4]		;58000h
-	push	eax
-	call	RFindPattern
-	test	eax,eax
-	jnz	.3_2_10_0
-	mov	eax,[esp+8]
-	push	_size_3_2_8_0
-	push	_mask_3_2_8_0
-	push	_ptrn_3_2_8_0
-	push	[size_delta+4]		;58000h
-	push	eax
-	call	RFindPattern
-	test	eax,eax
-	jnz	.3_2_8_0
+	findsig +20000h:3_3_0_0
+	findsig +20000h:3_3_7_7
+	findsig -58000h:3_3_7_0
+	findsig -58000h:3_2_10_0
+	findsig -58000h:3_2_8_0
     .err:
 	pop	dword [fs:0]
 	add	esp,4
@@ -304,65 +264,23 @@ endp
 	call	hook_critical_part
 	cmp	[file_err],1
 	je	.done
-	mov	eax,[esp+8]
-	push	_size_open2
-	push	_mask_open2
-	push	_ptrn_open2
-	push	[size_delta+4]		;8000h
-	push	eax
-	call	RFindPattern
-	test	eax,eax
-	jnz	.try
-	mov	eax,[esp+8]
-	push	_size_open
-	push	_mask_open
-	push	_ptrn_open
-	push	[size_delta+4]		;4D000h
-	push	eax
-	call	RFindPattern
-	test	eax,eax
-	jnz	.try
-	mov	[file_err],1
-	jmp	.done
-    .try:
+	findsig -4D000h:open_A8 , .exearc_open
+	findsig -08000h:open_alt, .exearc_open
+	findsig -4D000h:open_AC ,~.exearc_error
+	mov	[exearc_open_AC],1
+    .exearc_open:
 	mov	[EXEArc_Open],eax
-	mov	eax,[esp+8]
-	push	ebx esi edi
-	push	.catch
-	push	dword [fs:0]
-	mov	[fs:0],esp
-	push	_size_extract
-	push	_mask_extract
-	push	_ptrn_extract
-	push	[size_delta]		;40000h
-	push	eax
-	call	FindPattern
-	jmp	.finally
-      .catch:
-	mov	esp,[esp+8]
-	xor	eax,eax
-      .finally:
-	pop	dword [fs:0]
-	add	esp,4
-	pop	edi esi ebx
-	test	eax,eax
-	jnz	.done
-	mov	eax,[esp+8]
-	push	_size_extract
-	push	_mask_extract
-	push	_ptrn_extract
-	push	[size_delta+4]		;4D000h
-	push	eax
-	call	RFindPattern
-	mov	[exearc_v2],1
-	test	eax,eax
-	jnz	.done
+	findsig +40000h:extract , .exearc_extract
+	findsig -4D000h:extr_alt,~.exearc_error
+	mov	[exearc_extr_alt],1
+    .exearc_extract:
+	mov	[EXEArc_Extract],eax
+	jmp	.done
+    .exearc_error:
 	mov	[file_err],1
     .done:
-	mov	[EXEArc_Extract],eax
 	pop	dword [fs:0]
 	add	esp,4
-	mov	[already],1
     .already:
 	jmp	[_GetCommandLineW]
 
@@ -380,24 +298,8 @@ endp
 	push	.handler
 	push	dword [fs:0]
 	mov	[fs:0],esp
-	mov	eax,[esp+8]
-	push	_size_3_2_10_0
-	push	_mask_3_2_10_0
-	push	_ptrn_3_2_10_0
-	push	[size_delta]		;10000h
-	push	eax
-	call	FindPattern
-	test	eax,eax
-	jnz	.3_2_10_0
-	mov	eax,[esp+8]
-	push	_size_3_2_8_0
-	push	_mask_3_2_8_0
-	push	_ptrn_3_2_8_0
-	push	[size_delta]		;10000h
-	push	eax
-	call	FindPattern
-	test	eax,eax
-	jnz	.3_2_8_0
+	findsig +08000h:3_2_10_0
+	findsig +06000h:3_2_8_0
     .err:
 	pop	dword [fs:0]
 	add	esp,4
@@ -420,33 +322,18 @@ endp
 	call	hook_critical_part
 	cmp	[file_err],1
 	je	.done
-	mov	eax,[esp+8]
-	push	_size_open
-	push	_mask_open
-	push	_ptrn_open
-	push	[size_delta]		;12000h
-	push	eax
-	call	FindPattern
-	test	eax,eax
-	je	.error
+	mov	[exearc_ascii],1
+	findsig +14000h:open_A8 ,~.exearc_error
 	mov	[EXEArc_Open],eax
-	mov	eax,[esp+8]
-	push	_size_extract
-	push	_mask_extract
-	push	_ptrn_extract
-	push	[size_delta]		;12000h
-	push	eax
-	call	FindPattern
-	test	eax,eax
-	je	.error
+	findsig +14000h:extr_alt,~.exearc_error
 	mov	[EXEArc_Extract],eax
+	mov	[exearc_extr_alt],1
 	jmp	.done
-    .error:
+    .exearc_error:
 	mov	[file_err],1
     .done:
 	pop	dword [fs:0]
 	add	esp,4
-	mov	[already],1
     .already:
 	jmp	[_SystemParametersInfoA]
 
@@ -581,10 +468,17 @@ endp
 	push	BUFFER_SIZE
 	push	buf
 	push	0
-	call	[GetModuleFileNameW]
+	mov	eax,[GetModuleFileNameW]
+	cmp	[exearc_ascii],1
+	cmove	eax,[GetModuleFileNameA]
+	call	eax
 	push	edi
 	mov	edi,oRead
 	push	buf
+	cmp	[exearc_open_AC],1
+	jnz	.via_edi
+	push	edi
+      .via_edi:
 	call	[EXEArc_Open]
 	pop	edi
     .opened:
@@ -598,17 +492,29 @@ endp
 	call	MakeDir
 	mov	esi,path
 	xchg	esi,edi
+	cmp	[exearc_ascii],1
+	je	.ascii
 	call	.unicode
 	mov	esi,dummy
 	mov	edi,buf
 	call	.unicode
+	jmp	.extract
+    .ascii:
+	push	esi
+	push	edi
+	call	[strcpy]
+	push	dummy
+	push	buf
+	call	[strcpy]
+	add	esp,10h
+    .extract:
 	mov	ebx,oRead
 	push	path
 	push	buf
-	cmp	[exearc_v2],1
-	je	.ebxptr
+	cmp	[exearc_extr_alt],1
+	je	.via_ebx
 	push	ebx
-      .ebxptr:
+      .via_ebx:
 	call	[EXEArc_Extract]
 	pop	edi esi ebx
     .err:
@@ -1215,7 +1121,9 @@ section '.data' data readable writeable
 
   file_err rb 1
   file_mod rb 1
-  exearc_v2 rb 1
+  exearc_ascii rb 1
+  exearc_open_AC rb 1
+  exearc_extr_alt rb 1
   path rb MAX_PATH
 
   modrm rb 1
