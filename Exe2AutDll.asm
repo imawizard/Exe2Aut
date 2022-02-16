@@ -238,6 +238,20 @@ endp
 	pop	edi esi
 	retn
 
+  get_size_delta:
+	push	ebx
+	mov	ecx,edx
+	mov	ebx,edx
+	sub	ecx,eax
+	mov	[size_delta+4],ecx
+	push	ebx
+	call	alloc_size
+	sub	ebx,edx
+	sub	eax,ebx
+	mov	[size_delta],eax
+	pop	ebx
+	retn
+
   MyGetCommandLineW:
 	push	_ws2_32
 	call	[GetModuleHandle]
@@ -249,6 +263,8 @@ endp
 	je	.already
 	cmp	[already],1
 	je	.already
+	mov	edx,[esp]
+	call	get_size_delta
 	call	filename
 	push	.handler
 	push	dword [fs:0]
@@ -257,7 +273,7 @@ endp
 	push	_size_3_3_0_0
 	push	_mask_3_3_0_0
 	push	_ptrn_3_3_0_0
-	push	20000h
+	push	[size_delta]		;20000h
 	push	eax
 	call	FindPattern
 	test	eax,eax
@@ -266,7 +282,7 @@ endp
 	push	_size_3_3_7_7
 	push	_mask_3_3_7_7
 	push	_ptrn_3_3_7_7
-	push	20000h
+	push	[size_delta]		;20000h
 	push	eax
 	call	FindPattern
 	test	eax,eax
@@ -275,7 +291,7 @@ endp
 	push	_size_3_3_7_0
 	push	_mask_3_3_7_0
 	push	_ptrn_3_3_7_0
-	push	58000h
+	push	[size_delta+4]		;58000h
 	push	eax
 	call	RFindPattern
 	test	eax,eax
@@ -284,7 +300,7 @@ endp
 	push	_size_3_2_10_0
 	push	_mask_3_2_10_0
 	push	_ptrn_3_2_10_0
-	push	58000h
+	push	[size_delta+4]		;58000h
 	push	eax
 	call	RFindPattern
 	test	eax,eax
@@ -293,7 +309,7 @@ endp
 	push	_size_3_2_8_0
 	push	_mask_3_2_8_0
 	push	_ptrn_3_2_8_0
-	push	58000h
+	push	[size_delta+4]		;58000h
 	push	eax
 	call	RFindPattern
 	test	eax,eax
@@ -336,7 +352,7 @@ endp
 	push	_size_open2
 	push	_mask_open2
 	push	_ptrn_open2
-	push	8000h
+	push	[size_delta+4]		;8000h
 	push	eax
 	call	RFindPattern
 	test	eax,eax
@@ -345,7 +361,7 @@ endp
 	push	_size_open
 	push	_mask_open
 	push	_ptrn_open
-	push	4D000h
+	push	[size_delta+4]		;4D000h
 	push	eax
 	call	RFindPattern
 	test	eax,eax
@@ -362,7 +378,7 @@ endp
 	push	_size_extract
 	push	_mask_extract
 	push	_ptrn_extract
-	push	40000h
+	push	[size_delta]		;40000h
 	push	eax
 	call	FindPattern
 	jmp	.finally
@@ -379,7 +395,7 @@ endp
 	push	_size_extract
 	push	_mask_extract
 	push	_ptrn_extract
-	push	4D000h
+	push	[size_delta+4]		;4D000h
 	push	eax
 	call	RFindPattern
 	mov	[exearc_v2],1
@@ -400,6 +416,10 @@ endp
 	jnz	.already
 	cmp	[already],1
 	je	.already
+	push	eax
+	call	alloc_base
+	mov	edx,[esp]
+	call	get_size_delta
 	call	filename
 	push	.handler
 	push	dword [fs:0]
@@ -408,7 +428,7 @@ endp
 	push	_size_3_2_10_0
 	push	_mask_3_2_10_0
 	push	_ptrn_3_2_10_0
-	push	10000h
+	push	[size_delta]		;10000h
 	push	eax
 	call	FindPattern
 	test	eax,eax
@@ -417,7 +437,7 @@ endp
 	push	_size_3_2_8_0
 	push	_mask_3_2_8_0
 	push	_ptrn_3_2_8_0
-	push	10000h
+	push	[size_delta]		;10000h
 	push	eax
 	call	FindPattern
 	test	eax,eax
@@ -448,7 +468,7 @@ endp
 	push	_size_open
 	push	_mask_open
 	push	_ptrn_open
-	push	12000h
+	push	[size_delta]		;12000h
 	push	eax
 	call	FindPattern
 	test	eax,eax
@@ -458,7 +478,7 @@ endp
 	push	_size_extract
 	push	_mask_extract
 	push	_ptrn_extract
-	push	12000h
+	push	[size_delta]		;12000h
 	push	eax
 	call	FindPattern
 	test	eax,eax
@@ -1217,6 +1237,8 @@ section '.data' data readable writeable
 
   include 'func_table.inc'
   include 'signatures.inc'
+
+  size_delta rd 2
 
   hmodule rd 1
   hkernel rd 1

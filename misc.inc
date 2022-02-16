@@ -145,6 +145,31 @@ proc alloc_base address
 	ret
 endp
 
+proc alloc_size address
+  local mbi:MEMORY_BASIC_INFORMATION
+	push	ebx esi
+	lea	eax,[mbi]
+	push	sizeof.MEMORY_BASIC_INFORMATION
+	push	eax
+	push	[address]
+	call	[VirtualQuery]
+	mov	ebx,[mbi.AllocationBase]
+    .next:
+	lea	eax,[mbi]
+	push	sizeof.MEMORY_BASIC_INFORMATION
+	push	eax
+	push	ebx
+	call	[VirtualQuery]
+	add	ebx,[mbi.RegionSize]
+	cmp	ebx,[address]
+	jb	.next
+	mov	edx,[mbi.BaseAddress]
+	xchg	eax,ebx
+	sub	eax,edx
+	pop	esi ebx
+	ret
+endp
+
 proc DetourFunc address,gateway,size
   local old:DWORD,mbi:MEMORY_BASIC_INFORMATION
 	push	ebx esi edi
