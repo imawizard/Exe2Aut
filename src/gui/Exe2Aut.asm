@@ -252,7 +252,7 @@ proc DialogProc hwnd,msg,wparam,lparam
 	menu_item IDM_ARMDB,_armadillo,armmutex
 	menu_sep
 	menu_item IDM_NOFILES,_nofiles,nfimutex
-	menu_item IDM_DEOBFU,_deobfu,,MF_MENUBARBREAK
+	menu_item IDM_OPTIONS,_deobfu,,MF_MENUBARBREAK
 	menu_sep
 	menu_item IDM_ABOUT,_about
 	push	0
@@ -311,7 +311,7 @@ proc DialogProc hwnd,msg,wparam,lparam
 	je	.armadillo
 	cmp	[wparam],IDM_NOFILES
 	je	.nofiles
-	cmp	[wparam],IDM_DEOBFU
+	cmp	[wparam],IDM_OPTIONS
 	je	.deobfu
 	cmp	[wparam],IDM_ABOUT
 	je	.about
@@ -334,7 +334,7 @@ proc DialogProc hwnd,msg,wparam,lparam
 	push	[hwnd]
 	push	DeobfuProc
 	push	[hwnd]
-	push	IDD_DEOBFU
+	push	IDD_OPTIONS
 	push	eax
 	call	[DialogBoxParam]
 	jmp	.done
@@ -1388,7 +1388,7 @@ section '.data' data readable writeable
   _nofiles db 'Don''t Extract FileInstalls',0
   _nfiswitch du '-nofiles',0
   _nfimutex db VERSION,':NoFileInstall',0
-  _deobfu db 'Deobfuscator Options',0
+  _deobfu db 'Options',0
   _ifobfu db 'If obfuscated',0
   _always db 'Always',0
   _never db 'Never',0
@@ -1504,7 +1504,7 @@ section '.rsrc' resource data readable
   IDR_DLL64    = 6
   IDR_INJ64    = 7
   IDD_MAIN     = 100
-  IDD_DEOBFU   = 101
+  IDD_OPTIONS  = 101
   IDD_PROGRESS = 102
   IDD_ABOUT    = 103
   IDD_WARNING  = 104
@@ -1521,7 +1521,7 @@ section '.rsrc' resource data readable
   IDC_EXIT     = 1009
   IDM_ARMDB    = 2000
   IDM_NOFILES  = 2001
-  IDM_DEOBFU   = 2002
+  IDM_OPTIONS  = 2002
   IDM_ABOUT    = 2003
 
   directory RT_ICON,icons,\
@@ -1546,7 +1546,7 @@ section '.rsrc' resource data readable
 
   resource dialogs,\
 	   IDD_MAIN,LANG_ENGLISH+SUBLANG_DEFAULT,main_dialog,\
-	   IDD_DEOBFU,LANG_ENGLISH+SUBLANG_DEFAULT,deobfu_dialog,\
+	   IDD_OPTIONS,LANG_ENGLISH+SUBLANG_DEFAULT,options_dialog,\
 	   IDD_PROGRESS,LANG_ENGLISH+SUBLANG_DEFAULT,progress_dialog,\
 	   IDD_ABOUT,LANG_ENGLISH+SUBLANG_DEFAULT,about_dialog,\
 	   IDD_WARNING,LANG_ENGLISH+SUBLANG_DEFAULT,warning_dialog,\
@@ -1596,7 +1596,7 @@ section '.rsrc' resource data readable
     dialogitem 'edit','',IDC_RESULT,0,0,0,0,WS_VISIBLE+ES_MULTILINE+WS_HSCROLL+WS_VSCROLL+ES_READONLY
   enddialog
 
-  dialog deobfu_dialog,'',0,0,180,110,WS_POPUPWINDOW
+  dialog options_dialog,'',0,0,180,110,WS_POPUPWINDOW
     dialogitem 'button','',-1,6,3,163,69,WS_VISIBLE+BS_GROUPBOX
     dialogitem 'static','Deobfuscate JvdZ 1.0.29',-1,12,14+14*0,82,12,WS_VISIBLE
     dialogitem 'static',':',-1,12+83,14+14*0,6,12,WS_VISIBLE
