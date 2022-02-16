@@ -248,6 +248,22 @@ proc alloc_size address
 	ret
 endp
 
+proc jmp_size
+	push	eax
+	xchg	eax,edx
+	xor	ecx,ecx
+      .loop:
+	push	edx
+	call	mlde32
+	add	esp,4
+	add	ecx,eax
+	add	edx,eax
+	cmp	ecx,5
+	jb	.loop
+	pop	eax
+	retn
+endp
+
 proc DetourFunc address,gateway,size
   local old:DWORD,mbi:MEMORY_BASIC_INFORMATION
 	push	ebx esi edi

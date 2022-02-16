@@ -2,9 +2,7 @@
 format PE GUI 4.0 DLL at 10000000h
 entry start
 
-include 'win32a.inc'
-
-BUFFER_SIZE = 3052
+include 'Exe2AutDll.inc'
 
 section '.code' code readable executable
 
@@ -35,25 +33,9 @@ section '.code' code readable executable
 	push	_nofiles
 	call	IsMutex
 	mov	[file_err],al
-	push	_gclw
-	push	[hkernel]
-	call	[GetProcAddress]
-	call	.size
-	push	ecx
-	push	MyGetCommandLineW
-	push	eax
-	call	DetourFunc
+	hookapi [hkernel]:_gclw->MyGetCommandLineW
 	mov	[_GetCommandLineW],eax
-	push	_user32
-	call	[GetModuleHandle]
-	push	_spia
-	push	eax
-	call	[GetProcAddress]
-	call	.size
-	push	ecx
-	push	MySystemParametersInfoA
-	push	eax
-	call	DetourFunc
+	hookapi ~_user32:_spia->MySystemParametersInfoA
 	mov	[_SystemParametersInfoA],eax
 	jmp	.fin
     .armadillo:
@@ -61,25 +43,9 @@ section '.code' code readable executable
 	push	0
 	push	0
 	call	[CreateMutex]
-	push	_kernel32
-	call	[GetModuleHandle]
-	push	_cpw
-	push	eax
-	call	[GetProcAddress]
-	call	.size
-	push	ecx
-	push	MyCreateProcessW
-	push	eax
-	call	DetourFunc
+	hookapi ~_kernel32:_cpw->MyCreateProcessW
 	mov	[_CreateProcessW],eax
-	push	_rpm
-	push	[hkernel]
-	call	[GetProcAddress]
-	call	.size
-	push	ecx
-	push	MyReadProcessMemory
-	push	eax
-	call	DetourFunc
+	hookapi [hkernel]:_rpm->MyReadProcessMemory
 	mov	[_ReadProcessMemory],eax
 	push	0
 	push	0
@@ -91,20 +57,6 @@ section '.code' code readable executable
     .fin:
 	mov	eax,TRUE
 	retn	0Ch
-    .size:
-	push	eax
-	xchg	eax,edx
-	xor	ecx,ecx
-      .loop:
-	push	edx
-	call	mlde32
-	add	esp,4
-	add	ecx,eax
-	add	edx,eax
-	cmp	ecx,5
-	jb	.loop
-	pop	eax
-	retn
 
   MyCreateProcessW:
 	mov	ecx,10
