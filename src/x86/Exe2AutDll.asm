@@ -129,9 +129,9 @@ endp
 	retn	4
 
   hook_critical_part:
-	push	eax
 	cmp	[armadillo],0
 	je	.hook
+	push	eax
 	mov	eax,[esp]
 	lea	ecx,[eax+1]
 	push	_address
@@ -148,12 +148,13 @@ endp
 	call	[OpenMutex]
 	test	eax,eax
 	je	.wait
-    .hook:
 	pop	eax
+    .hook:
 	push	5
 	push	decompile
 	push	eax
 	call	DetourFunc
+	mov	[already],1
 	retn
 
   filename:
@@ -239,27 +240,30 @@ endp
 	call	[ExitProcess]
     .handler:
 	mov	esp,[esp+8]
-	jmp	.err
-    .3_3_0_0:
-	mov	cl,[eax+_modrm_3_3_0_0]
-	add	eax,_count_3_3_0_0
-	jmp	.fin
+	cmp	[already],0
+	je	.err
+	mov	[file_err],1
+	jmp	.done
     .3_3_7_7:
 	mov	cl,[eax+_modrm_3_3_7_7]
 	add	eax,_count_3_3_7_7
-	jmp	.fin
+	jmp	.hook
     .3_3_7_0:
 	mov	cl,[eax+_modrm_3_3_7_0]
 	add	eax,_count_3_3_7_0
-	jmp	.fin
+	jmp	.hook
+    .3_3_0_0:
+	mov	cl,[eax+_modrm_3_3_0_0]
+	add	eax,_count_3_3_0_0
+	jmp	.hook
     .3_2_10_0:
 	mov	cl,[eax+_modrm_3_2_10_0]
 	add	eax,_count_3_2_10_0
-	jmp	.fin
+	jmp	.hook
     .3_2_8_0:
 	mov	cl,[eax+_modrm_3_2_8_0]
 	add	eax,_count_3_2_8_0
-    .fin:
+    .hook:
 	mov	[modrm],cl
 	call	hook_critical_part
 	cmp	[file_err],1
@@ -309,15 +313,18 @@ endp
 	call	[ExitProcess]
     .handler:
 	mov	esp,[esp+8]
-	jmp	.err
+	cmp	[already],0
+	je	.err
+	mov	[file_err],1
+	jmp	.done
     .3_2_10_0:
 	mov	cl,[eax+_modrm_3_2_10_0]
 	add	eax,_count_3_2_10_0
-	jmp	.fin
+	jmp	.hook
     .3_2_8_0:
 	mov	cl,[eax+_modrm_3_2_8_0]
 	add	eax,_count_3_2_8_0
-    .fin:
+    .hook:
 	mov	[modrm],cl
 	call	hook_critical_part
 	cmp	[file_err],1

@@ -309,31 +309,31 @@ endp
 
 macro gfx_idata
  {
-  _terminal db 'Terminal',0
-  _lame db 'wow, this looks so lame'
-  lamelen = $-_lame
-  _excuse db '1st time GDI, though :]'
-  excuselen = $-_excuse
+   _terminal db 'Terminal',0
+   _lame db 'wow, this looks so lame'
+   lamelen = $-_lame
+   _excuse db '1st time GDI, though :]'
+   excuselen = $-_excuse
 
-  GFX_Spiked db 14 dup (2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,4,6,8,10,10,10,10,10,10,10,10,8,6,4)
+   GFX_Spiked db 14 dup (2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,4,6,8,10,10,10,10,10,10,10,10,8,6,4)
  }
 
 macro gfx_udata
  {
-  orbs rb sizeof.ORB*ORBS
+   orbs rb sizeof.ORB*ORBS
 
-  GFX_hDC rd 1
-  GFX_Width rd 1
-  GFX_Height rd 1
-  GFX_Rect RECT
-  GFX_MX rd 1
-  GFX_MY rd 1
-  GFX_Black rd 1
+   GFX_hDC rd 1
+   GFX_Width rd 1
+   GFX_Height rd 1
+   GFX_Rect RECT
+   GFX_MX rd 1
+   GFX_MY rd 1
+   GFX_Black rd 1
 
-  GFX_Min rd 1
-  GFX_Burst rb 1
-  GFX_Done rb 1
-  GFX_TextColor rd 1
+   GFX_Min rd 1
+   GFX_Burst rb 1
+   GFX_Done rb 1
+   GFX_TextColor rd 1
 
-  radf rq 1
+   radf rq 1
  }

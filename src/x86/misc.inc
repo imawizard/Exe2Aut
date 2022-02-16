@@ -88,10 +88,6 @@ struct MEMORY_BASIC_INFORMATION
   Type		    rd 1
 ends
 
-if ~ defined MASK_IGNORE
- MASK_IGNORE = '?'
-end if
-
 proc FindPattern
 	push	ebx esi edi
 	mov	edi,[esp+10h]
@@ -118,7 +114,7 @@ proc FindPattern
 	mov	eax,[esp]
 	sub	eax,edi
 	neg	eax
-	cmp	byte [edx+eax],MASK_IGNORE
+	cmp	byte [edx+eax],1
 	je	.compare
     .no_match:
 	pop	edi
@@ -160,7 +156,7 @@ proc RFindPattern
 	mov	eax,[esp]
 	sub	eax,edi
 	neg	eax
-	cmp	byte [edx+eax],MASK_IGNORE
+	cmp	byte [edx+eax],1
 	je	.compare
     .no_match:
 	pop	edi
@@ -173,43 +169,6 @@ proc RFindPattern
     .fin:
 	pop	edi esi ebx
 	retn	14h
-endp
-
-proc IsMutex
-	push	dword [esp+4]
-	push	0
-	push	MUTEX_ALL_ACCESS
-	call	[OpenMutex]
-	test	eax,eax
-	setnz	al
-	and	eax,1
-	retn	4
-endp
-
-proc MakeDir
-	push	esi edi
-	mov	esi,[esp+0Ch]
-	mov	edi,[esp+0Ch]
-	push	esi
-	call	[lstrlen]
-	mov	ecx,eax
-    .loop:
-	mov	al,'\'
-	repnz	scasb
-	jnz	.fin
-	cmp	byte [edi-2],':'
-	je	.loop
-	mov	byte [edi-1],0
-	push	ecx
-	push	0
-	push	esi
-	call	[CreateDirectory]
-	pop	ecx
-	mov	byte [edi-1],'\'
-	jmp	.loop
-    .fin:
-	pop	edi esi
-	retn	4
 endp
 
 proc alloc_base address
@@ -297,7 +256,7 @@ proc DetourFunc address,gateway,size
 	push	esi
 	call	[VirtualQuery]
 	mov	edx,PAGE_READWRITE
-	call	.deprotect
+	call	.protect
 	mov	byte [esi],0E9h
 	mov	edx,edi
 	sub	edx,esi
@@ -313,10 +272,10 @@ proc DetourFunc address,gateway,size
 	rep	stosb
     .done:
 	mov	edx,[old]
-	call	.deprotect
+	call	.protect
 	pop	eax
 	jmp	.fin
-    .deprotect:
+    .protect:
 	lea	eax,[old]
 	push	eax
 	push	edx
@@ -436,6 +395,43 @@ proc LoadResfile name,type,size
     .fin:
 	pop	edi
 	ret
+endp
+
+proc IsMutex
+	push	dword [esp+4]
+	push	0
+	push	MUTEX_ALL_ACCESS
+	call	[OpenMutex]
+	test	eax,eax
+	setnz	al
+	and	eax,1
+	retn	4
+endp
+
+proc MakeDir
+	push	esi edi
+	mov	esi,[esp+0Ch]
+	mov	edi,[esp+0Ch]
+	push	esi
+	call	[lstrlen]
+	mov	ecx,eax
+    .loop:
+	mov	al,'\'
+	repnz	scasb
+	jnz	.fin
+	cmp	byte [edi-2],':'
+	je	.loop
+	mov	byte [edi-1],0
+	push	ecx
+	push	0
+	push	esi
+	call	[CreateDirectory]
+	pop	ecx
+	mov	byte [edi-1],'\'
+	jmp	.loop
+    .fin:
+	pop	edi esi
+	retn	4
 endp
 
 proc CalcMid parent,child

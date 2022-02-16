@@ -51,6 +51,6 @@ struct HS_EXEArc_Read
   m_fEXE	    rd 1
   m_nArchivePtr     rd 1
   m_nFileSectionPtr rd 1
-  m_szPwd	    rb HS_EXEARC_MAXPWDLEN+1
-  m_nPwdHash	    rd 1
+; m_szPwd           rb HS_EXEARC_MAXPWDLEN+1
+; m_nPwdHash        rd 1
 ends

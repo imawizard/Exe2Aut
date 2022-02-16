@@ -141,22 +141,22 @@ section '.code' code readable executable
 	mov	cl,[rax+_modrm_3_3_0_0]
 	mov	ch,[rax+_modrm_3_3_0_0-2]
 	add	rax,_count_3_3_0_0
-	jmp	.fin
+	jmp	.hook
     .3_3_7_7:
 	mov	cl,[rax+_modrm_3_3_7_7]
 	mov	ch,[rax+_modrm_3_3_7_7-2]
 	add	rax,_count_3_3_7_7
-	jmp	.fin
+	jmp	.hook
     .3_3_7_0:
 	mov	cl,[rax+_modrm_3_3_7_0]
 	mov	ch,[rax+_modrm_3_3_7_0-2]
 	add	rax,_count_3_3_7_0
-	jmp	.fin
+	jmp	.hook
     .3_2_10_0:
 	mov	cl,[rax+_modrm_3_2_10_0]
 	mov	ch,[rax+_modrm_3_2_10_0-2]
 	add	rax,_count_3_2_10_0
-    .fin:
+    .hook:
 	mov	[modrm],cl
 	mov	[rex.r],ch
 	mov	rcx,rax
