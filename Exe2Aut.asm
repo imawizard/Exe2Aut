@@ -1254,7 +1254,9 @@ section '.rsrc' resource data readable
 
   directory RT_ICON,icons,\
 	    RT_GROUP_ICON,group_icons,\
-	    RT_DIALOG,dialogs
+	    RT_DIALOG,dialogs,\
+	    RT_MANIFEST,manifests,\
+	    RT_VERSION,versions
 
   resource icons,\
 	   1,LANG_ENGLISH+SUBLANG_DEFAULT,icon_data,\
@@ -1272,6 +1274,12 @@ section '.rsrc' resource data readable
 	   IDD_PROGRESS,LANG_ENGLISH+SUBLANG_DEFAULT,progress_dialog,\
 	   IDD_ABOUT,LANG_ENGLISH+SUBLANG_DEFAULT,about_dialog
 
+  resource manifests,\
+	   1,LANG_ENGLISH+SUBLANG_DEFAULT,manifest
+
+  resource versions,\
+	   1,LANG_ENGLISH+SUBLANG_DEFAULT,version
+
   icon main_icon,icon_data,'icon.ico',\
 		 icon_data2,'icon2.ico'
 
@@ -1280,6 +1288,17 @@ section '.rsrc' resource data readable
   resdata exe2autdll
     file 'Exe2AutDll.dll'
   endres
+
+  resdata manifest
+    file 'manifest.xml'
+  endres
+
+  versioninfo version,VOS__WINDOWS32,VFT_APP,VFT2_UNKNOWN,\
+		      LANG_ENGLISH+SUBLANG_DEFAULT,0,\
+	      'ProductName','Exe2Aut',\
+	      'FileDescription','Tiny AutoIt3 Decompiler',\
+	      'FileVersion','5',\
+	      'ProductVersion','v5'
 
   dialog main_dialog,WINDOW_TITLE,0,0,380,310,WS_OVERLAPPEDWINDOW+DS_CENTER,WS_EX_ACCEPTFILES
     dialogitem 'edit','',IDC_RESULT,0,0,0,0,WS_VISIBLE+ES_MULTILINE+WS_HSCROLL+WS_VSCROLL+ES_READONLY
