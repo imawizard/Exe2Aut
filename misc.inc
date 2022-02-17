@@ -1,5 +1,7 @@
 
 ERROR_ALREADY_EXISTS = 0B7h
+MUTEX_ALL_ACCESS     = 1F0001h
+SEMAPHORE_ALL_ACCESS = 1F0003h
 
 struct MEMORY_BASIC_INFORMATION
   BaseAddress	    dd ?
@@ -96,15 +98,11 @@ RFindPattern:
 IsMutex:
 	push	dword [esp+4]
 	push	0
-	push	0
-	call	[CreateMutex]
-	call	[GetLastError]
-	xor	ecx,ecx
-	cmp	eax,ERROR_ALREADY_EXISTS
-	jnz	.err
-	inc	ecx
-    .err:
-	mov	eax,ecx
+	push	MUTEX_ALL_ACCESS
+	call	[OpenMutex]
+	test	eax,eax
+	setnz	al
+	and	eax,1
 	retn	4
 
 MakeDir:

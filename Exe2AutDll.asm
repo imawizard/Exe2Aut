@@ -15,6 +15,14 @@ section '.code' code readable executable
 	mov	[hmodule],eax
 	push	eax
 	call	[DisableThreadLibraryCalls]
+	push	_kernelbase
+	call	[GetModuleHandle]
+	test	eax,eax
+	jnz	.already
+	push	_kernel32
+	call	[GetModuleHandle]
+      .already:
+	mov	[hkernel],eax
 	push	_loaded
 	call	IsMutex
 	test	eax,eax
@@ -27,15 +35,8 @@ section '.code' code readable executable
 	push	_nofiles
 	call	IsMutex
 	mov	[file_err],al
-	push	_kernelbase
-	call	[GetModuleHandle]
-	test	eax,eax
-	jnz	.already
-	push	_kernel32
-	call	[GetModuleHandle]
-      .already:
 	push	_gclw
-	push	eax
+	push	[hkernel]
 	call	[GetProcAddress]
 	call	.size
 	push	ecx
@@ -57,7 +58,9 @@ section '.code' code readable executable
 	jmp	.fin
     .armadillo:
 	push	_loaded
-	call	IsMutex
+	push	0
+	push	0
+	call	[CreateMutex]
 	push	_kernel32
 	call	[GetModuleHandle]
 	push	_cpw
@@ -69,6 +72,22 @@ section '.code' code readable executable
 	push	eax
 	call	DetourFunc
 	mov	[_CreateProcessW],eax
+	push	_rpm
+	push	[hkernel]
+	call	[GetProcAddress]
+	call	.size
+	push	ecx
+	push	MyReadProcessMemory
+	push	eax
+	call	DetourFunc
+	mov	[_ReadProcessMemory],eax
+	push	0
+	push	0
+	push	0
+	push	recvaddr
+	push	0
+	push	0
+	call	[CreateThread]
     .fin:
 	mov	eax,TRUE
 	retn	0Ch
@@ -100,13 +119,89 @@ section '.code' code readable executable
 	push	[hmodule]
 	call	[GetModuleFileName]
 	mov	ecx,[esp+28h]
+	mov	eax,[ecx+PROCESS_INFORMATION.hProcess]
 	mov	ecx,[ecx+PROCESS_INFORMATION.dwProcessId]
+	mov	[process],eax
 	push	dummy
 	push	ecx
 	call	InjectDll
 	mov	eax,1
     .fin:
 	retn	28h
+
+proc MyReadProcessMemory hProcess,lpBaseAddress,lpBuffer,nSize,lpNumberOfBytesRead
+	mov	eax,[hProcess]
+	cmp	eax,[process]
+	jnz	.ignore
+	cmp	[address],0
+	je	.ignore
+	mov	eax,[lpBaseAddress]
+	cmp	eax,[address]
+	ja	.ignore
+	add	eax,[nSize]
+	cmp	eax,[address]
+	jb	.ignore
+	mov	eax,0
+	jmp	.fin
+    .ignore:
+	push	[lpNumberOfBytesRead]
+	push	[nSize]
+	push	[lpBuffer]
+	push	[lpBaseAddress]
+	push	[hProcess]
+	call	[_ReadProcessMemory]
+    .fin:
+	ret
+endp
+
+  recvaddr:
+	push	100
+	call	[Sleep]
+	push	_address
+	push	0
+	push	SEMAPHORE_ALL_ACCESS
+	call	[OpenSemaphore]
+	test	eax,eax
+	je	recvaddr
+	push	address
+	push	1
+	push	eax
+	call	[ReleaseSemaphore]
+	push	_ready
+	push	0
+	push	0
+	call	[CreateMutex]
+	retn	4
+
+  infiltrate:
+	push	eax
+	push	_armadillo
+	call	IsMutex
+	test	eax,eax
+	je	.hook
+	mov	eax,[esp]
+	lea	ecx,[eax+1]
+	push	_address
+	push	ecx
+	push	eax
+	push	0
+	call	[CreateSemaphore]
+    .wait:
+	push	100
+	call	[Sleep]
+	push	_ready
+	push	0
+	push	MUTEX_ALL_ACCESS
+	call	[OpenMutex]
+	test	eax,eax
+	je	.wait
+    .hook:
+	pop	eax
+	push	5
+	push	decompile
+	push	eax
+	call	DetourFunc
+	retn
 
   filename:
 	push	esi edi
@@ -234,10 +329,7 @@ section '.code' code readable executable
 	add	eax,_count_3_2_8_0
     .fin:
 	mov	[modrm],cl
-	push	5
-	push	decompile
-	push	eax
-	call	DetourFunc
+	call	infiltrate
 	cmp	[file_err],1
 	je	.done
 	mov	eax,[esp+8]
@@ -349,10 +441,7 @@ section '.code' code readable executable
 	add	eax,_count_3_2_8_0
     .fin:
 	mov	[modrm],cl
-	push	5
-	push	decompile
-	push	eax
-	call	DetourFunc
+	call	infiltrate
 	cmp	[file_err],1
 	je	.done
 	mov	eax,[esp+8]
@@ -1100,8 +1189,11 @@ section '.data' data readable writeable
   _gclw db 'GetCommandLineW',0
   _spia db 'SystemParametersInfoA',0
   _cpw db 'CreateProcessW',0
+  _rpm db 'ReadProcessMemory',0
   _armadillo db VERSION,':Armadillo',0
   _loaded db VERSION,':Armadillo_OK',0
+  _address db VERSION,':Armadillo_PTR',0
+  _ready db VERSION,':Armadillo_READY',0
   _nofiles db VERSION,':NoFileInstall',0
 
   ;=====================================================================================
@@ -1188,10 +1280,14 @@ section '.data' data readable writeable
   include 'func_table.inc'
 
   hmodule rd 1
+  hkernel rd 1
   _GetCommandLineW rd 1
   _SystemParametersInfoA rd 1
   _CreateProcessW rd 1
+  _ReadProcessMemory rd 1
   already rb 1
+  process rd 1
+  address rd 1
 
   include 'exearc_read.inc'
   oRead HS_EXEArc_Read
