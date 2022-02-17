@@ -531,15 +531,17 @@ endp
   decompile:
 	push	ebx esi edi
 	std
-	or	ecx,-1
+	mov	ecx,edx
 	mov	al,'\'
 	lea	edi,[path+edx-1]
 	repnz	scasb
 	cld
+	jecxz	.ok
 	mov	byte [edi+1],0
 	push	path
 	call	[SetCurrentDirectory]
 	mov	byte [edi+1],'\'
+    .ok:
 	sub	esp,4
 	push	esp
 	push	path
