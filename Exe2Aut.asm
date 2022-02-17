@@ -215,6 +215,8 @@ section '.code' code readable executable
 proc DialogProc hwnd,msg,wparam,lparam
 	cmp	[msg],WM_INITDIALOG
 	je	.wm_initdialog
+	cmp	[msg],WM_GETMINMAXINFO
+	je	.wm_getminmaxinfo
 	cmp	[msg],WM_SYSCOMMAND
 	je	.wm_syscommand
 	cmp	[msg],WM_COMMAND
@@ -286,6 +288,11 @@ proc DialogProc hwnd,msg,wparam,lparam
 	push	WM_DROPFILES
 	push	[hwnd]
 	call	[PostMessage]
+	jmp	.done
+    .wm_getminmaxinfo:
+	mov	eax,[lparam]
+	mov	[eax+MINMAXINFO.ptMinTrackSize+POINT.x],280
+	mov	[eax+MINMAXINFO.ptMinTrackSize+POINT.y],201
 	jmp	.done
     .wm_syscommand:
 	xor	eax,eax
