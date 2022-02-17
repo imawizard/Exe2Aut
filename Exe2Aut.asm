@@ -5,6 +5,9 @@ entry start
 include 'win32a.inc'
 
 ERROR_ALREADY_EXISTS = 0B7h
+PBS_MARQUEE	     = 8
+PBM_SETMARQUEE	     = WM_USER+10
+HTCAPTION	     = 2
 
 macro menu_item idm,caption,mutex,flags
  { if ~ mutex eq
@@ -77,6 +80,14 @@ section '.code' code readable executable
 	on_arg	dword [esi],_nfiswitch,.nofiles
 	on_arg	dword [esi],_nogui,.nogui
 	on_arg	dword [esi],_quiet,.quiet
+	xor	edi,edi
+	on_arg	dword [esi],_deobfusc,.deobfu_params,2
+	inc	edi
+	on_arg	dword [esi],_rename,.deobfu_params,2
+	inc	edi
+	on_arg	dword [esi],_fileinst,.deobfu_params,2
+	inc	edi
+	on_arg	dword [esi],_compiled,.deobfu_params,2
 	push	esi
 	mov	esi,[esi]
 	mov	edi,path
@@ -111,6 +122,14 @@ section '.code' code readable executable
 	jmp	.next
       .quiet:
 	mov	[be_quiet],1
+	jmp	.next
+      .deobfu_params:
+	mov	eax,[esi]
+	add	eax,4
+	push	eax
+	call	[wtoi]
+	add	esp,4
+	mov	[s_deobfusc+edi*4],eax
     .next:
 	add	esi,4
 	dec	ebx
@@ -209,6 +228,8 @@ proc DialogProc hwnd,msg,wparam,lparam
 	xor	eax,eax
 	jmp	.fin
     .wm_initdialog:
+	mov	eax,[hwnd]
+	mov	[main_hwnd],eax
 	push	0
 	push	[hwnd]
 	call	[GetSystemMenu]
@@ -218,6 +239,9 @@ proc DialogProc hwnd,msg,wparam,lparam
 	menu_item IDM_ARMDB,_armadillo,armmutex
 	menu_sep
 	menu_item IDM_NOFILES,_nofiles,nfimutex
+	menu_item IDM_DEOBFU,_deobfu,,MF_MENUBARBREAK
+	menu_sep
+	menu_item IDM_ABOUT,_about
 	push	0
 	call	[GetModuleHandle]
 	push	0
@@ -269,6 +293,10 @@ proc DialogProc hwnd,msg,wparam,lparam
 	je	.armadillo
 	cmp	[wparam],IDM_NOFILES
 	je	.nofiles
+	cmp	[wparam],IDM_DEOBFU
+	je	.deobfu
+	cmp	[wparam],IDM_ABOUT
+	je	.about
 	jmp	.fin
       .armadillo:
 	push	ebx esi edi
@@ -281,6 +309,27 @@ proc DialogProc hwnd,msg,wparam,lparam
 	mov	ebx,IDM_NOFILES
 	mov	esi,_nfimutex
 	mov	edi,nfimutex
+	jmp	.sysmenu
+      .deobfu:
+	push	0
+	call	[GetModuleHandle]
+	push	[hwnd]
+	push	DeobfuProc
+	push	[hwnd]
+	push	IDD_DEOBFU
+	push	eax
+	call	[DialogBoxParam]
+	jmp	.done
+      .about:
+	push	0
+	call	[GetModuleHandle]
+	push	[hwnd]
+	push	AboutProc
+	push	[hwnd]
+	push	IDD_ABOUT
+	push	eax
+	call	[DialogBoxParam]
+	jmp	.done
       .sysmenu:
 	push	0
 	push	[hwnd]
@@ -347,6 +396,8 @@ proc DialogProc hwnd,msg,wparam,lparam
 	call	[MoveWindow]
 	jmp	.done
     .wm_dropfiles:
+	push	[hwnd]
+	call	[SetForegroundWindow]
 	cmp	[wparam],-1
 	je	.directly
 	push	256
@@ -364,7 +415,36 @@ proc DialogProc hwnd,msg,wparam,lparam
 	call	[lstrlen]
 	xchg	eax,edx
       .dothejob:
+	push	0
+	push	0
+	push	edx
+	push	decompile_thread
+	push	0
+	push	0
+	call	[CreateThread]
+	push	0
+	call	[GetModuleHandle]
+	push	[hwnd]
+	push	ProgressProc
+	push	[hwnd]
+	push	IDD_PROGRESS
+	push	eax
+	call	[DialogBoxParam]
+	jmp	.done
+    .wm_close:
+	push	0
+	push	[hwnd]
+	call	[EndDialog]
+    .done:
+	mov	eax,1
+    .fin:
+	ret
+endp
+
+proc decompile_thread len
+	mov	edx,[len]
 	call	decompile
+	push	ecx
 	mov	ecx,_32bit
 	cmp	eax,NO_32BIT
 	je	.err
@@ -373,16 +453,17 @@ proc DialogProc hwnd,msg,wparam,lparam
 	je	.err
 	mov	ecx,_failed
 	cmp	eax,NO_INJECTION
-	je	.output
+	je	.didntwork
 	mov	ecx,_output
 	cmp	eax,NO_OUTPUT
-	je	.output
-	push	edx
+	je	.didntwork
+	mov	esi,edx
 	push	edx
 	push	IDC_RESULT
-	push	[hwnd]
+	push	[main_hwnd]
 	call	[SetDlgItemText]
 	call	[GetProcessHeap]
+	push	esi
 	push	0
 	push	eax
 	call	[HeapFree]
@@ -398,18 +479,14 @@ proc DialogProc hwnd,msg,wparam,lparam
 	push	eax
 	push	0
 	push	WM_SETICON
-	push	[hwnd]
+	push	[main_hwnd]
 	call	[SendMessage]
-	cmp	[armmutex],0
-	je	.done
-	push	0
-	push	IDM_ARMDB
-	push	WM_SYSCOMMAND
-	push	[hwnd]
-	call	[SendMessage]
-	jmp	.done
-      .output:
-	push	ecx
+	pop	ecx
+	test	ecx,ecx
+	je	.finalize
+	jmp	.finalize
+    .didntwork:
+	mov	[esp],ecx
 	push	0
 	call	[GetModuleHandle]
 	push	0
@@ -422,30 +499,36 @@ proc DialogProc hwnd,msg,wparam,lparam
 	push	eax
 	push	0
 	push	WM_SETICON
-	push	[hwnd]
+	push	[main_hwnd]
 	call	[SendMessage]
 	push	IDC_RESULT
-	push	[hwnd]
+	push	[main_hwnd]
 	call	[SetDlgItemText]
-	jmp	.done
-      .err:
+    .finalize:
+	cmp	[armmutex],0
+	je	.fin
+	push	0
+	push	IDM_ARMDB
+	push	WM_SYSCOMMAND
+	push	[main_hwnd]
+	call	[SendMessage]
+	jmp	.fin
+    .err:
 	push	MB_OK+MB_ICONINFORMATION+MB_SETFOREGROUND
 	push	_title
 	push	ecx
-	push	[hwnd]
+	push	[main_hwnd]
 	call	[MessageBox]
-	jmp	.done
-    .wm_close:
-	push	0
-	push	[hwnd]
-	call	[EndDialog]
-    .done:
-	mov	eax,1
     .fin:
+	push	0
+	push	0
+	push	WM_CLOSE
+	push	[progress_hwnd]
+	call	[SendMessage]
 	ret
 endp
 
-decompile:
+  decompile:
 	push	ebx esi edi
 	std
 	or	ecx,-1
@@ -571,10 +654,37 @@ decompile:
 	push	edi
 	push	esi
 	call	[_lread]
+	push	[s_compiled]
+	push	[s_fileinst]
+	push	[s_rename]
+	push	[s_deobfusc]
+	push	ebx
+	push	edi
+	call	deobfuscate
+	push	ecx
+	cmp	edx,ebx
+	je	.done
+	push	eax
+	push	edx
+	push	eax
+	push	0
+	push	0
+	push	esi
+	call	[_llseek]
+	push	esi
+	call	[_lwrite]
+	push	esi
+	call	[SetEndOfFile]
+	pop	eax
+    .done:
+	xchg	eax,ebx
 	push	esi
 	call	[_lclose]
+	push	edi
+	call	[LocalFree]
+	pop	eax
+	mov	edx,ebx
 	xor	ecx,ecx
-	mov	edx,edi
 	jmp	.fin
     .err:
 	push	0
@@ -590,6 +700,263 @@ decompile:
 	xchg	eax,ecx
 	pop	edi esi ebx
 	retn
+
+proc DeobfuProc hwnd,msg,wparam,lparam
+  local rect:RECT
+	cmp	[msg],WM_INITDIALOG
+	je	.wm_initdialog
+	cmp	[msg],WM_COMMAND
+	je	.wm_command
+	cmp	[msg],WM_CLOSE
+	je	.wm_close
+	xor	eax,eax
+	jmp	.fin
+    .wm_initdialog:
+	lea	eax,[rect]
+	push	eax
+	push	[lparam]
+	call	[GetClientRect]
+	lea	eax,[rect]
+	push	eax
+	push	[lparam]
+	call	[ClientToScreen]
+	dec	[rect.left]
+	dec	[rect.top]
+	add	[rect.bottom],2
+	add	[rect.right],2
+	push	0
+	push	[rect.bottom]
+	push	[rect.right]
+	push	[rect.top]
+	push	[rect.left]
+	push	0
+	push	[hwnd]
+	call	[SetWindowPos]
+	lea	eax,[rect]
+	push	eax
+	push	[lparam]
+	call	[GetClientRect]
+	push	IDC_SAVE
+	push	[hwnd]
+	call	[GetDlgItem]
+	mov	ecx,[rect.bottom]
+	mov	edx,[rect.right]
+	sub	ecx,36
+	sub	edx,46
+	push	SWP_NOSIZE
+	push	0
+	push	0
+	push	ecx
+	push	edx
+	push	0
+	push	eax
+	call	[SetWindowPos]
+	push	ebx
+	mov	ebx,[hwnd]
+	push	[s_deobfusc]
+	push	IDC_DEOBFUSC
+	push	ebx
+	call	[CheckDlgButton]
+	push	[s_fileinst]
+	push	IDC_FILEINST
+	push	ebx
+	call	[CheckDlgButton]
+	push	[s_compiled]
+	push	IDC_COMPILED
+	push	ebx
+	call	[CheckDlgButton]
+	push	IDC_SYMBOLS
+	push	ebx
+	call	[GetDlgItem]
+	xchg	eax,ebx
+	push	_ifobfu
+	push	0
+	push	CB_ADDSTRING
+	push	ebx
+	call	[SendMessage]
+	push	_always
+	push	0
+	push	CB_ADDSTRING
+	push	ebx
+	call	[SendMessage]
+	push	_never
+	push	0
+	push	CB_ADDSTRING
+	push	ebx
+	call	[SendMessage]
+	push	0
+	push	[s_rename]
+	push	CB_SETCURSEL
+	push	ebx
+	call	[SendMessage]
+	pop	ebx
+	jmp	.done
+    .wm_command:
+	cmp	[wparam],IDCANCEL
+	je	.save
+	cmp	[wparam],BN_CLICKED shl 16+IDC_SAVE
+	jnz	.done
+      .save:
+	push	ebx
+	mov	ebx,[hwnd]
+	push	IDC_DEOBFUSC
+	push	ebx
+	call	[IsDlgButtonChecked]
+	mov	[s_deobfusc],eax
+	push	IDC_FILEINST
+	push	ebx
+	call	[IsDlgButtonChecked]
+	mov	[s_fileinst],eax
+	push	IDC_COMPILED
+	push	ebx
+	call	[IsDlgButtonChecked]
+	mov	[s_compiled],eax
+	push	0
+	push	0
+	push	CB_GETCURSEL
+	push	IDC_SYMBOLS
+	push	ebx
+	call	[SendDlgItemMessage]
+	mov	[s_rename],eax
+	pop	ebx
+    .wm_close:
+	push	0
+	push	[hwnd]
+	call	[EndDialog]
+    .done:
+	mov	eax,1
+    .fin:
+	ret
+endp
+
+proc ProgressProc hwnd,msg,wparam,lparam
+	cmp	[msg],WM_INITDIALOG
+	je	.wm_initdialog
+	cmp	[msg],WM_SYSCOMMAND
+	je	.wm_syscommand
+	cmp	[msg],WM_CLOSE
+	je	.wm_close
+	xor	eax,eax
+	jmp	.fin
+    .wm_initdialog:
+	mov	eax,[hwnd]
+	mov	[progress_hwnd],eax
+	push	[hwnd]
+	push	[lparam]
+	call	CalcMid
+	push	SWP_NOSIZE
+	push	0
+	push	0
+	push	edx
+	push	eax
+	push	0
+	push	[hwnd]
+	call	[SetWindowPos]
+	push	0
+	push	TRUE
+	push	PBM_SETMARQUEE
+	push	IDC_PROGRESS
+	push	[hwnd]
+	call	[SendDlgItemMessage]
+	jmp	.done
+    .wm_syscommand:
+	xor	eax,eax
+	cmp	[wparam],SC_CLOSE
+	je	.done
+	jmp	.fin
+    .wm_close:
+	push	0
+	push	[hwnd]
+	call	[EndDialog]
+    .done:
+	mov	eax,1
+    .fin:
+	ret
+endp
+
+proc AboutProc hwnd,msg,wparam,lparam
+  local ps:PAINTSTRUCT
+	cmp	[msg],WM_INITDIALOG
+	je	.wm_initdialog
+	cmp	[msg],WM_TIMER
+	je	.wm_timer
+	cmp	[msg],WM_PAINT
+	je	.wm_paint
+	cmp	[msg],WM_LBUTTONDOWN
+	je	.wm_lbuttondown
+	cmp	[msg],WM_RBUTTONDOWN
+	je	.wm_close
+	cmp	[msg],WM_COMMAND
+	je	.wm_command
+	cmp	[msg],WM_CLOSE
+	je	.wm_close
+	xor	eax,eax
+	jmp	.fin
+    .wm_initdialog:
+	push	[hwnd]
+	push	[lparam]
+	call	CalcMid
+	push	SWP_NOSIZE
+	push	0
+	push	0
+	push	edx
+	push	eax
+	push	0
+	push	[hwnd]
+	call	[SetWindowPos]
+	call	randomize
+	push	[hwnd]
+	call	GFX_INIT
+	push	0
+	push	30
+	push	0
+	push	[hwnd]
+	call	[SetTimer]
+	jmp	.done
+    .wm_timer:
+	cmp	[GFX_Done],1
+	je	.close
+	call	GFX_UPDATE
+	push	0
+	push	0
+	push	[hwnd]
+	call	[InvalidateRect]
+	jmp	.done
+    .wm_paint:
+	push	edi
+	lea	edi,[ps]
+	push	edi
+	push	[hwnd]
+	call	[BeginPaint]
+	push	eax
+	call	GFX_SHOW
+	push	edi
+	push	[hwnd]
+	call	[EndPaint]
+	pop	edi
+	jmp	.fin
+    .wm_lbuttondown:
+	push	0
+	push	HTCAPTION
+	push	WM_NCLBUTTONDOWN
+	push	[hwnd]
+	call	[SendMessage]
+	jmp	.done
+    .wm_command:
+	cmp	[wparam],IDCANCEL
+	jnz	.done
+    .wm_close:
+	mov	[GFX_Burst],1
+	jmp	.done
+      .close:
+	push	0
+	push	[hwnd]
+	call	[EndDialog]
+    .done:
+	mov	eax,1
+    .fin:
+	ret
+endp
 
 proc LoadResfile name,type,size
 	push	edi
@@ -700,6 +1067,61 @@ proc InjectDll pid,dll
 	ret
 endp
 
+proc CalcMid parent,child
+  local rect:RECT
+	lea	eax,[rect]
+	push	eax
+	push	[parent]
+	call	[GetClientRect]
+	shr	[rect.right],1
+	shr	[rect.bottom],1
+	lea	eax,[rect+8]
+	push	eax
+	push	[parent]
+	call	[ClientToScreen]
+	push	[rect.right]
+	push	[rect.bottom]
+	lea	eax,[rect]
+	push	eax
+	push	[child]
+	call	[GetClientRect]
+	shr	[rect.right],1
+	shr	[rect.bottom],1
+	pop	edx
+	pop	eax
+	sub	edx,[rect.bottom]
+	sub	eax,[rect.right]
+	ret
+endp
+
+randomize:
+	xor	eax,eax
+	cpuid
+	rdtsc
+	mov	[randseed],eax
+	retn
+
+rand:
+	imul	eax,[randseed],8088405h
+	inc	eax
+	mov	[randseed],eax
+	retn
+
+random:
+	xchg	eax,ecx
+	imul	eax,[randseed],8088405h
+	inc	eax
+	mov	[randseed],eax
+	xor	edx,edx
+	div	ecx
+	xchg	eax,edx
+	retn
+
+	include 'deobfuscate.inc'
+	include 'gfx.inc'
+	include 'nvlist.inc'
+	include 'strhelp.inc'
+
 section '.data' data readable writeable
 
   VERSION equ 'Exe2Autv4'
@@ -722,14 +1144,34 @@ section '.data' data readable writeable
   _mutex db VERSION,0
   _already db 'I''m already running!',0
   _window db WINDOW_TITLE,0
+  _header db '- Exe2Aut Settings -',0
   _armadillo db 'Armadillo''s Debug-Blocker',0
   _armswitch du '-armadillo',0
   _armmutex db VERSION,':Armadillo',0
   _nofiles db 'Don''t Extract FileInstalls',0
   _nfiswitch du '-nofiles',0
   _nfimutex db VERSION,':NoFileInstall',0
+  _deobfu db 'Deobfuscator Options',0
+  _ifobfu db 'If obfuscated',0
+  _always db 'Always',0
+  _never db 'Never',0
+  _about db 'About',0
+  _compiled_macro db 'Script contains » @Compiled « !',\
+		     13,10,'You should probably look into that.',0
   _nogui du '-nogui',0
   _quiet du '-quiet',0
+  _deobfusc du '-d',0
+  _rename du '-r',0
+  _fileinst du '-f',0
+  _compiled du '-c',0
+
+  s_deobfusc dd BST_CHECKED
+  s_rename dd 0
+  s_fileinst dd BST_CHECKED
+  s_compiled dd BST_INDETERMINATE
+
+  deobfus_idata
+  gfx_idata
 
   path rb 256
   pathdll rb 256
@@ -743,36 +1185,70 @@ section '.data' data readable writeable
   be_quiet rb 1
   argc rd 1
 
+  main_hwnd rd 1
+  progress_hwnd rd 1
+
   mp MSGBOXPARAMS
+
+  randseed rd 1
+
+  deobfus_udata
+  gfx_udata
 
 section '.idata' import data readable
 
   library kernel32,'KERNEL32.DLL',\
 	  user32,'USER32.DLL',\
+	  gdi32,'GDI32.DLL',\
 	  shell32,'SHELL32.DLL',\
-	  gdi32,'GDI32.DLL'
+	  msvcrt,'MSVCRT.DLL'
 
   include 'api\kernel32.inc'
   include 'api\user32.inc'
+  include 'api\gdi32.inc'
 
   import shell32,\
 	 CommandLineToArgvW,'CommandLineToArgvW',\
 	 DragFinish,'DragFinish',\
 	 DragQueryFile,'DragQueryFileA'
 
-  import gdi32,\
-	 CreateFont,'CreateFontA',\
-	 SelectObject,'SelectObject'
+  import msvcrt,\
+	 atoi,'atoi',\
+	 itoa,'_itoa',\
+	 memmove,'memmove',\
+	 memset,'memset',\
+	 sprintf,'sprintf',\
+	 strcat,'strcat',\
+	 strchr,'strchr',\
+	 strcmp,'strcmp',\
+	 strcpy,'strcpy',\
+	 stricmp,'_stricmp',\
+	 strlen,'strlen',\
+	 strncpy,'strncpy',\
+	 strstr,'strstr',\
+	 wcsncmp,'wcsncmp',\
+	 wtoi,'_wtoi'
 
 section '.rsrc' resource data readable
 
-  IDI_ICON1   = 1
-  IDI_ICON2   = 2
-  IDR_DLL     = 4
-  IDD_MAIN    = 100
-  IDC_RESULT  = 101
-  IDM_ARMDB   = 102
-  IDM_NOFILES = 103
+  IDI_ICON1    = 1
+  IDI_ICON2    = 2
+  IDR_DLL      = 4
+  IDD_MAIN     = 100
+  IDD_DEOBFU   = 101
+  IDD_PROGRESS = 102
+  IDD_ABOUT    = 103
+  IDC_RESULT   = 104
+  IDC_SAVE     = 105
+  IDC_DEOBFUSC = 106
+  IDC_SYMBOLS  = 107
+  IDC_FILEINST = 108
+  IDC_COMPILED = 109
+  IDC_PROGRESS = 110
+  IDM_ARMDB    = 111
+  IDM_NOFILES  = 112
+  IDM_DEOBFU   = 113
+  IDM_ABOUT    = 114
 
   directory RT_ICON,icons,\
 	    RT_GROUP_ICON,group_icons,\
@@ -789,7 +1265,10 @@ section '.rsrc' resource data readable
 	   IDI_ICON2,LANG_ENGLISH+SUBLANG_DEFAULT,other_icon
 
   resource dialogs,\
-	   IDD_MAIN,LANG_ENGLISH+SUBLANG_DEFAULT,main_dialog
+	   IDD_MAIN,LANG_ENGLISH+SUBLANG_DEFAULT,main_dialog,\
+	   IDD_DEOBFU,LANG_ENGLISH+SUBLANG_DEFAULT,deobfu_dialog,\
+	   IDD_PROGRESS,LANG_ENGLISH+SUBLANG_DEFAULT,progress_dialog,\
+	   IDD_ABOUT,LANG_ENGLISH+SUBLANG_DEFAULT,about_dialog
 
   icon main_icon,icon_data,'icon.ico',\
 		 icon_data2,'icon2.ico'
@@ -802,4 +1281,28 @@ section '.rsrc' resource data readable
 
   dialog main_dialog,WINDOW_TITLE,0,0,380,310,WS_OVERLAPPEDWINDOW+DS_CENTER,WS_EX_ACCEPTFILES
     dialogitem 'edit','',IDC_RESULT,0,0,0,0,WS_VISIBLE+ES_MULTILINE+WS_HSCROLL+WS_VSCROLL+ES_READONLY
+  enddialog
+
+  dialog deobfu_dialog,'',0,0,180,110,WS_POPUPWINDOW
+    dialogitem 'button','',-1,6,3,163,69,WS_VISIBLE+BS_GROUPBOX
+    dialogitem 'static','Deobfuscate JvdZ 1.0.29',-1,12,14+14*0,82,12,WS_VISIBLE
+    dialogitem 'static',':',-1,12+83,14+14*0,6,12,WS_VISIBLE
+    dialogitem 'button','',IDC_DEOBFUSC,102,12+12*0,12,12,WS_VISIBLE+BS_FLAT+BS_AUTOCHECKBOX
+    dialogitem 'static','Rename Symbols',-1,12,14+14*1,82,12,WS_VISIBLE
+    dialogitem 'static',':',-1,12+83,14+14*1,6,12,WS_VISIBLE
+    dialogitem 'combobox','',IDC_SYMBOLS,102,12+14*1,60,60,WS_VISIBLE+CBS_DROPDOWNLIST+CBS_NOINTEGRALHEIGHT
+    dialogitem 'static','Adjust FileInstall(...)',-1,12,14+14*2,82,12,WS_VISIBLE
+    dialogitem 'static',':',-1,12+83,14+14*2,6,12,WS_VISIBLE
+    dialogitem 'button','',IDC_FILEINST,102,12+14*2,12,12,WS_VISIBLE+BS_FLAT+BS_AUTOCHECKBOX
+    dialogitem 'static','Replace @Compiled',-1,12,14+14*3,82,12,WS_VISIBLE
+    dialogitem 'static',':',-1,12+83,14+14*3,6,12,WS_VISIBLE
+    dialogitem 'button','',IDC_COMPILED,102,12+14*3,12,12,WS_VISIBLE+BS_FLAT+BS_AUTO3STATE
+    dialogitem 'button','OK',IDC_SAVE,0,0,24,16,WS_VISIBLE,WS_EX_STATICEDGE
+  enddialog
+
+  dialog progress_dialog,'',0,0,102,17,WS_BORDER+WS_POPUP
+    dialogitem 'msctls_progress32','',IDC_PROGRESS,1,1,99,15,WS_VISIBLE+PBS_MARQUEE
+  enddialog
+
+  dialog about_dialog,'',0,0,176,100,WS_POPUP
   enddialog

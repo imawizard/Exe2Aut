@@ -2,14 +2,15 @@
 struct NVList
   List		dd ?
   Heap		dd ?
-  EmptyStr	dd ?
   _Count	dd ?
   _Capacity	dd ?
   _IsStringList db ?
 ends
 
-; First parameter
-; is always SelfPtr
+; First parameter is always SelfPtr
+;
+; (proc-macro is used to make FASM omit)
+; (those functions, which are not used.)
 ;
 ;  NVList* Create(void)
 ;     Constructor
@@ -42,6 +43,8 @@ ends
 ;     Adds a new item
 ;  void Insert(Index, NewName, NewValue)
 ;     Inserts a new item
+;  void Exchange(Index1, Index2)
+;     Exchanges both items
 ;  void Delete(Index)
 ;     Deletes an item
 ;  void* Item(Index)
@@ -87,22 +90,23 @@ ends
 ;     Increments the list's capacity
 ;  int* GetItem(Index)
 ;     Calculates the address of an item
-;  void* AllocItem(String, String)
-;     Copies two Strings if IsStringList
+;  void* AllocItem(Name, Value)
+;     Creates copies - if IsStringList
 ;     Otherwise it just returns the two args [eax/edx]
 ;  void FreeItem(Item, NameOrValue)
-;     Frees either Name [NameOrValue=1], Value [2] or Both [0] if IsStringList
+;     Frees either Name [NameOrValue=1], Value [2] or Both [0] - if IsStringList
 ;
-; used API functions
-;
+; KERNEL32.DLL
 ;  GetProcessHeap
 ;  HeapAlloc
 ;  HeapFree
 ;  HeapReAlloc
-;  lstrlen
-;  lstrcmp
+;
+; MSVCRT.DLL
+;  strlen
+;  strcmp
 
-NVList.Create:
+proc NVList.Create
 	call	[GetProcessHeap]
 	push	eax
 	push	sizeof.NVList
@@ -122,39 +126,34 @@ NVList.Create:
 	and	[ecx+NVList._Capacity],0
 	mov	[ecx+NVList.Heap],edx
 	mov	[ecx+NVList._IsStringList],0
-	push	ecx
-	push	1
-	push	HEAP_ZERO_MEMORY
-	push	edx
-	call	[HeapAlloc]
-	pop	ecx
-	mov	[ecx+NVList.EmptyStr],eax
 	xchg	eax,ecx
-	retn
+	ret
+endp
 
-NVList.Free:
-	push	dword [esp+4]
+proc NVList.Free this
+	push	[this]
 	call	NVList.Clear
-	mov	ecx,[esp+4]
+	mov	ecx,[this]
 	push	[ecx+NVList.List]
 	push	0
 	push	[ecx+NVList.Heap]
 	call	[HeapFree]
-	mov	ecx,[esp+4]
+	mov	ecx,[this]
 	push	ecx
 	push	0
 	push	[ecx+NVList.Heap]
 	call	[HeapFree]
-	retn	4
+	ret
+endp
 
 ; private
 
 macro prep_first
  { push 0
-   push dword [esp+8] }
+   push [this] }
 
 macro prep_last
- { mov eax,[esp+4]
+ { mov eax,[this]
    mov ecx,[eax+NVList._Count]
    dec ecx
    push ecx
@@ -162,10 +161,28 @@ macro prep_last
 
 macro index_of mode
  { push ebx esi edi
-   mov esi,[esp+10h]
-   mov edi,[esp+14h]
+   mov esi,[this]
+   mov edi,[to_cmp]
+   cmp [esi+NVList._Count],0
+   je .err
    xor ebx,ebx
+   cmp [esi+NVList._IsStringList],1
+   je .str_loop
   .loop:
+   push ebx
+   push esi
+   match =name,mode
+   \{ call NVList.Name \}
+   match =value,mode
+   \{ call NVList.Value \}
+   cmp eax,edi
+   je .fin
+   inc ebx
+   cmp ebx,[esi+NVList._Count]
+   jb .loop
+   or ebx,-1
+   jmp .fin
+  .str_loop:
    push ebx
    push esi
    match =name,mode
@@ -174,19 +191,21 @@ macro index_of mode
    \{ call NVList.Value \}
    push eax
    push edi
-   call [lstrcmp]
+   call [strcmp]
+   add esp,8
    test eax,eax
-   je .found
+   je .fin
    inc ebx
    cmp ebx,[esi+NVList._Count]
-   jb .loop
+   jb .str_loop
+  .err:
    or ebx,-1
-  .found:
+  .fin:
    mov eax,ebx
    pop edi esi ebx }
 
-NVList.Grow:
-	mov	eax,[esp+4]
+proc NVList.Grow this
+	mov	eax,[this]
 	mov	ecx,[eax+NVList._Capacity]
 	cmp	ecx,64
 	jbe	.16or4
@@ -203,11 +222,13 @@ NVList.Grow:
 	push	ecx
 	push	eax
 	call	NVList.SetCapacity
-	retn	4
+	mov	eax,[this]
+	ret
+endp
 
-NVList.GetItem:
-	mov	edx,[esp+4]
-	mov	ecx,[esp+8]
+proc NVList.GetItem this,index
+	mov	edx,[this]
+	mov	ecx,[index]
 	xor	eax,eax
 	test	ecx,ecx
 	js	.fin
@@ -216,24 +237,29 @@ NVList.GetItem:
 	mov	eax,[edx+NVList.List]
 	lea	eax,[eax+ecx*8]
     .fin:
-	retn	8
+	ret
+endp
 
-NVList.AllocItem:
-	mov	ecx,[esp+4]
+proc NVList.AllocItem this,name,value
+	mov	ecx,[this]
 	cmp	[ecx+NVList._IsStringList],1
 	jnz	.fin
 	push	ebx esi edi
-	lea	ebx,[esp+14h]
+	lea	ebx,[name]
 	mov	ecx,2
     .loop:
 	mov	esi,[ebx]
 	push	ecx
+	test	esi,esi
+	js	.next
+	je	.empty
 	push	esi
-	call	[lstrlen]
-	mov	ecx,[esp+14h]
+	call	[strlen]
+	add	esp,4
 	test	eax,eax
 	je	.empty
 	inc	eax
+	mov	ecx,[this]
 	push	eax
 	mov	ecx,[ecx+NVList.Heap]
 	push	eax
@@ -250,21 +276,27 @@ NVList.AllocItem:
 	loop	.loop
 	pop	edi esi ebx
     .fin:
-	mov	eax,[esp+8]
-	mov	edx,[esp+0Ch]
-	retn	0Ch
+	mov	eax,[name]
+	mov	edx,[value]
+	ret
     .empty:
-	mov	eax,[ecx+NVList.EmptyStr]
+	mov	ecx,[this]
+	mov	ecx,[ecx+NVList.Heap]
+	push	1
+	push	HEAP_ZERO_MEMORY
+	push	ecx
+	call	[HeapAlloc]
 	mov	[ebx],eax
 	jmp	.next
+endp
 
-NVList.FreeItem:
-	mov	ecx,[esp+4]
+proc NVList.FreeItem this,item,mode
+	mov	ecx,[this]
 	cmp	[ecx+NVList._IsStringList],1
 	jnz	.fin
 	push	ebx edi
-	mov	edi,[esp+10h]
-	mov	edx,[esp+14h]
+	mov	edi,[item]
+	mov	edx,[mode]
 	mov	ebx,[ecx+NVList.Heap]
 	cmp	edx,2
 	je	.value
@@ -281,20 +313,22 @@ NVList.FreeItem:
 	call	[HeapFree]
 	pop	edi ebx
     .fin:
-	mov	eax,[esp+8]
-	retn	0Ch
+	mov	eax,[item]
+	ret
+endp
 
 ; properties
 
-NVList.Count:
-	mov	eax,[esp+4]
+proc NVList.Count this
+	mov	eax,[this]
 	mov	eax,[eax+NVList._Count]
-	retn	4
+	ret
+endp
 
-NVList.SetCount:
+proc NVList.SetCount this,count
 	push	edi
-	mov	edi,[esp+8]
-	mov	ecx,[esp+0Ch]
+	mov	edi,[this]
+	mov	ecx,[count]
 	mov	edx,[edi+NVList._Capacity]
 	test	ecx,ecx
 	js	.err
@@ -304,7 +338,7 @@ NVList.SetCount:
 	push	edi
 	call	NVList.SetCapacity
     .enough:
-	mov	ecx,[esp+0Ch]
+	mov	ecx,[count]
 	mov	edx,[edi+NVList._Count]
 	cmp	ecx,edx
 	jbe	.delete
@@ -330,20 +364,22 @@ NVList.SetCount:
 	pop	edx ecx
 	jmp	.delete
     .fin:
-	mov	eax,[esp+0Ch]
+	mov	eax,[count]
 	mov	[edi+NVList._Count],eax
     .err:
 	pop	edi
-	retn	8
+	ret
+endp
 
-NVList.Capacity:
-	mov	eax,[esp+4]
+proc NVList.Capacity this
+	mov	eax,[this]
 	mov	eax,[eax+NVList._Capacity]
-	retn	4
+	ret
+endp
 
-NVList.SetCapacity:
-	mov	eax,[esp+4]
-	mov	ecx,[esp+8]
+proc NVList.SetCapacity this,capacity
+	mov	eax,[this]
+	mov	ecx,[capacity]
 	mov	edx,[eax+NVList._Count]
 	cmp	ecx,edx
 	jl	.fin
@@ -353,23 +389,25 @@ NVList.SetCapacity:
 	mov	[eax+NVList._Capacity],ecx
 	shl	ecx,3
 	push	ecx
-	push	dword [eax+NVList.List]
+	push	[eax+NVList.List]
 	push	HEAP_ZERO_MEMORY
-	push	dword [eax+NVList.Heap]
+	push	[eax+NVList.Heap]
 	call	[HeapReAlloc]
-	mov	ecx,[esp+4]
+	mov	ecx,[this]
 	mov	[ecx+NVList.List],eax
     .fin:
-	retn	8
+	ret
+endp
 
-NVList.IsStringList:
-	mov	eax,[esp+4]
+proc NVList.IsStringList this
+	mov	eax,[this]
 	movzx	eax,[eax+NVList._IsStringList]
-	retn	4
+	ret
+endp
 
-NVList.ToStringList:
-	mov	eax,[esp+4]
-	mov	edx,[esp+8]
+proc NVList.ToStringList this,bool
+	mov	eax,[this]
+	mov	edx,[bool]
 	mov	ecx,[eax+NVList._Count]
 	lea	eax,[eax+NVList._IsStringList]
 	test	ecx,ecx
@@ -377,53 +415,126 @@ NVList.ToStringList:
 	mov	[eax],dl
     .fin:
 	movzx	eax,byte [eax]
-	retn	8
+	ret
+endp
 
 ; methods
 
-NVList.Clear:
+proc NVList.Clear this
 	push	0
-	push	dword [esp+8]
+	push	[this]
 	call	NVList.SetCount
 	push	0
-	push	dword [esp+8]
+	push	[this]
 	call	NVList.SetCapacity
-	retn	4
+	ret
+endp
 
-NVList.Expand:
-	mov	ecx,[esp+4]
-	mov	edx,[ecx+NVList._Count]
-	cmp	edx,[ecx+NVList._Capacity]
+proc NVList.Expand this
+	mov	eax,[this]
+	mov	ecx,[eax+NVList._Count]
+	cmp	ecx,[eax+NVList._Capacity]
 	jnz	.fin
-	push	ecx
+	push	eax
 	call	NVList.Grow
     .fin:
-	mov	eax,[esp+4]
-	retn	4
+	ret
+endp
 
-NVList.Add:
-	push	dword [esp+4]
-	call	NVList.Expand
+proc NVList.Add this,name,value
+	mov	eax,[this]
 	mov	ecx,[eax+NVList._Count]
+	cmp	ecx,[eax+NVList._Capacity]
+	jnz	.dontgrow
+	push	ecx
+	push	eax
+	call	NVList.Grow
+	pop	ecx
+    .dontgrow:
 	inc	[eax+NVList._Count]
 	mov	eax,[eax+NVList.List]
 	lea	eax,[eax+ecx*8]
 	push	eax
-	push	dword [esp+10h]
-	push	dword [esp+10h]
-	push	dword [esp+10h]
+	push	[value]
+	push	[name]
+	push	[this]
 	call	NVList.AllocItem
 	pop	ecx
 	mov	[ecx],eax
 	mov	[ecx+4],edx
-	retn	0Ch
+	ret
+endp
 
-NVList.Insert:
-	retn	10h
+proc NVList.Insert this,index,name,value
+	push	esi edi
+	mov	eax,[this]
+	mov	ecx,[eax+NVList._Count]
+	cmp	ecx,[eax+NVList._Capacity]
+	jnz	.dontgrow
+	push	ecx
+	push	eax
+	call	NVList.Grow
+	pop	ecx
+    .dontgrow:
+	inc	[eax+NVList._Count]
+	mov	eax,[eax+NVList.List]
+	mov	edx,[index]
+	test	edx,edx
+	js	.fin
+	cmp	edx,ecx
+	jnb	.fin
+	lea	edi,[eax+ecx*8]
+	lea	esi,[eax+edx*8]
+	sub	ecx,edx
+	push	esi
+	shl	ecx,1
+	std
+	rep	movsd
+	cld
+	push	[value]
+	push	[name]
+	push	[this]
+	call	NVList.AllocItem
+	pop	ecx
+	mov	[ecx],eax
+	mov	[ecx+4],edx
+    .fin
+	pop	edi esi
+	ret
+endp
 
-NVList.Delete:
-	mov	ecx,[esp+8]
-	mov	edx,[esp+4]
+proc NVList.Exchange this,index1,index2
+	mov	eax,[this]
+	mov	ecx,[index1]
+	mov	edx,[index2]
+	test	ecx,ecx
+	js	.fin
+	test	edx,edx
+	js	.fin
+	cmp	ecx,[eax+NVList._Count]
+	jnb	.fin
+	cmp	edx,[eax+NVList._Count]
+	jnb	.fin
+	mov	eax,[eax+NVList.List]
+	push	ebx esi edi
+	lea	esi,[eax+ecx*8]
+	lea	edi,[eax+edx*8]
+	mov	ecx,[esi]
+	mov	edx,[esi+4]
+	mov	eax,[edi]
+	mov	ebx,[edi+4]
+	mov	[edi],ecx
+	mov	[edi+4],edx
+	mov	[esi],eax
+	mov	[esi+4],ebx
+	pop	edi esi ebx
+    .fin:
+	ret
+endp
+
+proc NVList.Delete this,index
+	mov	ecx,[index]
+	mov	edx,[this]
 	test	ecx,ecx
 	js	.fin
 	cmp	ecx,[edx+NVList._Count]
@@ -433,10 +544,10 @@ NVList.Delete:
 	call	NVList.GetItem
 	push	0
 	push	eax
-	push	dword [esp+0Ch]
+	push	[this]
 	call	NVList.FreeItem
-	mov	ecx,[esp+4]
-	mov	edx,[esp+8]
+	mov	ecx,[this]
+	mov	edx,[index]
 	dec	[ecx+NVList._Count]
 	mov	ecx,[ecx+NVList._Count]
 	cmp	edx,ecx
@@ -449,11 +560,12 @@ NVList.Delete:
 	rep	movsd
 	pop	edi esi
     .fin:
-	retn	8
+	ret
+endp
 
-NVList.Item:
-	push	dword [esp+8]
-	push	dword [esp+8]
+proc NVList.Item this,index
+	push	[index]
+	push	[this]
 	call	NVList.GetItem
 	xor	edx,edx
 	test	eax,eax
@@ -461,142 +573,158 @@ NVList.Item:
 	mov	edx,[eax+4]
 	mov	eax,[eax]
     .fin:
-	retn	8
+	ret
+endp
 
-NVList.SetItem:
-	push	dword [esp+8]
-	push	dword [esp+8]
+proc NVList.SetItem this,index,name,value
+	push	[index]
+	push	[this]
 	call	NVList.GetItem
 	test	eax,eax
 	je	.fin
 	push	0
 	push	eax
-	push	dword [esp+0Ch]
+	push	[this]
 	call	NVList.FreeItem
 	push	eax
-	push	dword [esp+14h]
-	push	dword [esp+14h]
-	push	dword [esp+10h]
+	push	[value]
+	push	[name]
+	push	[this]
 	call	NVList.AllocItem
 	pop	ecx
 	mov	[ecx],eax
 	mov	[ecx+4],edx
     .fin:
-	retn	10h
+	ret
+endp
 
-NVList.Name:
-	push	dword [esp+8]
-	push	dword [esp+8]
+proc NVList.Name this,index
+	push	[index]
+	push	[this]
 	call	NVList.GetItem
 	test	eax,eax
 	je	.fin
 	mov	eax,[eax]
     .fin:
-	retn	8
+	ret
+endp
 
-NVList.SetName:
-	push	dword [esp+8]
-	push	dword [esp+8]
+proc NVList.SetName this,index,name
+	push	[index]
+	push	[this]
 	call	NVList.GetItem
 	test	eax,eax
 	je	.fin
 	push	1
 	push	eax
-	push	dword [esp+0Ch]
+	push	[this]
 	call	NVList.FreeItem
 	push	eax
-	push	0
-	push	dword [esp+14h]
-	push	dword [esp+10h]
+	push	-1
+	push	[name]
+	push	[this]
 	call	NVList.AllocItem
 	pop	ecx
 	mov	[ecx],eax
     .fin:
-	retn	0Ch
+	ret
+endp
 
-NVList.Value:
-	push	dword [esp+8]
-	push	dword [esp+8]
+proc NVList.Value this,index
+	push	[index]
+	push	[this]
 	call	NVList.GetItem
 	test	eax,eax
 	je	.fin
 	mov	eax,[eax+4]
     .fin:
-	retn	8
+	ret
+endp
 
-NVList.SetValue:
-	push	dword [esp+8]
-	push	dword [esp+8]
+proc NVList.SetValue this,index,value
+	push	[index]
+	push	[this]
 	call	NVList.GetItem
 	test	eax,eax
 	je	.fin
 	push	2
 	push	eax
-	push	dword [esp+0Ch]
+	push	[this]
 	call	NVList.FreeItem
 	push	eax
-	push	0
-	push	dword [esp+14h]
-	push	dword [esp+10h]
+	push	[value]
+	push	-1
+	push	[this]
 	call	NVList.AllocItem
 	pop	ecx
-	mov	[ecx+4],eax
+	mov	[ecx+4],edx
     .fin:
-	retn	0Ch
+	ret
+endp
 
-NVList.First:
+proc NVList.First this
 	prep_first
 	call	NVList.Item
-	retn	4
+	ret
+endp
 
-NVList.Last:
+proc NVList.Last this
 	prep_last
 	call	NVList.Item
-	retn	4
+	ret
+endp
 
-NVList.FirstN:
+proc NVList.FirstN this
 	prep_first
 	call	NVList.Name
-	retn	4
+	ret
+endp
 
-NVList.LastN:
+proc NVList.LastN this
 	prep_last
 	call	NVList.Name
-	retn	4
+	ret
+endp
 
-NVList.FirstV:
+proc NVList.FirstV this
 	prep_first
 	call	NVList.Value
-	retn	4
+	ret
+endp
 
-NVList.LastV:
+proc NVList.LastV this
 	prep_last
 	call	NVList.Value
-	retn	4
+	ret
+endp
 
-NVList.IndexOfN:
+proc NVList.IndexOfN this,to_cmp
 	index_of name
-	retn	8
+	ret
+endp
 
-NVList.IndexOfV:
+proc NVList.IndexOfV this,to_cmp
 	index_of value
-	retn	8
+	ret
+endp
 
-NVList.ValueFromName:
-	push	dword [esp+8]
-	push	dword [esp+8]
+proc NVList.ValueFromName this,name
+	push	[name]
+	push	[this]
 	call	NVList.IndexOfN
 	push	eax
-	push	dword [esp+8]
+	push	[this]
 	call	NVList.Value
-	retn	8
+	ret
+endp
 
-NVList.SetValueFromName:
-	push	dword [esp+8]
-	push	dword [esp+8]
+proc NVList.SetValueFromName this,name,value
+	push	[name]
+	push	[this]
 	call	NVList.IndexOfN
-	push	dword [esp+0Ch]
+	push	[value]
 	push	eax
-	push	dword [esp+0Ch]
+	push	[this]
 	call	NVList.SetValue
-	retn	0Ch
+	ret
+endp
