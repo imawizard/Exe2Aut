@@ -1132,7 +1132,7 @@ random:
 
 section '.data' data readable writeable
 
-  VERSION equ 'Exe2Autv4'
+  VERSION equ 'Exe2Autv5'
   WINDOW_TITLE equ 'Exe2Aut - AutoIt3 Decompiler'
 
   NO_32BIT     = 1

@@ -1182,7 +1182,7 @@ endp
 
 section '.data' data readable writeable
 
-  VERSION equ 'Exe2Autv4'
+  VERSION equ 'Exe2Autv5'
 
   _kernel32 db 'kernel32.dll',0
   _user32 db 'user32.dll',0
@@ -1199,6 +1199,8 @@ section '.data' data readable writeable
   _nofiles db VERSION,':NoFileInstall',0
 
   ;=====================================================================================
+  ;     3_3_7_21
+  ;     3_3_7_20
   ;     3_3_7_19
   ;     3_3_7_18
   ;     3_3_7_17
