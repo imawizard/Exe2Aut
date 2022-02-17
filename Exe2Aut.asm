@@ -6,6 +6,36 @@ include 'win32a.inc'
 
 ERROR_ALREADY_EXISTS = 0B7h
 
+macro menu_item idm,caption,mutex,flags
+ { if ~ mutex eq
+    xor eax,eax
+    cmp [mutex],0
+    sete al
+    dec eax
+    and eax,MF_CHECKED
+    or eax,MF_STRING
+    push caption
+    push idm
+    push eax
+   else
+    push caption
+    push idm
+    if ~ flags eq
+     push MF_STRING+flags
+    else
+     push MF_STRING
+    end if
+   end if
+   push ebx
+   call [AppendMenu] }
+
+macro menu_sep
+ { push 0
+   push 0
+   push MF_SEPARATOR
+   push ebx
+   call [AppendMenu] }
+
 section '.code' code readable executable
 
   start:
@@ -179,31 +209,11 @@ proc DialogProc hwnd,msg,wparam,lparam
 	push	[hwnd]
 	call	[GetSystemMenu]
 	mov	ebx,eax
-	push	0
-	push	0
-	push	MF_SEPARATOR
-	push	ebx
-	call	[AppendMenu]
-	mov	eax,MF_STRING
-	cmp	[armmutex],0
-	je	.append_arm
-	or	eax,MF_CHECKED
-      .append_arm:
-	push	_armadillo
-	push	IDM_ARMDB
-	push	eax
-	push	ebx
-	call	[AppendMenu]
-	mov	eax,MF_STRING
-	cmp	[nfimutex],0
-	je	.append_nfi
-	or	eax,MF_CHECKED
-      .append_nfi:
-	push	_nofiles
-	push	IDM_NOFILES
-	push	eax
-	push	ebx
-	call	[AppendMenu]
+	menu_sep
+	menu_item 0,_header,,MF_GRAYED
+	menu_item IDM_ARMDB,_armadillo,armmutex
+	menu_sep
+	menu_item IDM_NOFILES,_nofiles,nfimutex
 	push	0
 	call	[GetModuleHandle]
 	push	0
