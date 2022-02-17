@@ -98,8 +98,6 @@ proc DialogProc hwnd,msg,wparam,lparam
 	je	.wm_command
 	cmp	[msg],WM_SIZE
 	je	.wm_size
-	cmp	[msg],WM_CTLCOLORSTATIC
-	je	.wm_ctlcolorstatic
 	cmp	[msg],WM_DROPFILES
 	je	.wm_dropfiles
 	cmp	[msg],WM_CLOSE
@@ -178,9 +176,16 @@ proc DialogProc hwnd,msg,wparam,lparam
 	push	0
 	push	0
 	push	0
-	push	14
+	push	-11
 	call	[CreateFont]
-	mov	[font],eax
+	push	0
+	push	eax
+	push	WM_SETFONT
+	push	IDC_RESULT
+	push	[hwnd]
+	call	[GetDlgItem]
+	push	eax
+	call	[SendMessage]
 	jmp	.done
     .wm_syscommand:
 	xor	eax,eax
@@ -266,12 +271,6 @@ proc DialogProc hwnd,msg,wparam,lparam
 	push	eax
 	call	[MoveWindow]
 	jmp	.done
-    .wm_ctlcolorstatic:
-	push	[font]
-	push	[wparam]
-	call	[SelectObject]
-	xor	eax,eax
-	jmp	.fin
     .wm_dropfiles:
 	push	256
 	push	path
@@ -614,7 +613,6 @@ section '.data' data readable writeable
   renmutex rd 1
   adjmutex rd 1
   argc rd 1
-  font rd 1
 
 section '.idata' import data readable
 
