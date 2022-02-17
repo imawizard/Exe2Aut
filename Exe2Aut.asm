@@ -284,6 +284,8 @@ proc DialogProc hwnd,msg,wparam,lparam
 	push	ecx
 	call	[CheckMenuItem]
 	pop	eax
+	test	esi,esi
+	je	.switch
 	test	eax,MF_CHECKED
 	je	.release
 	push	esi
@@ -291,8 +293,7 @@ proc DialogProc hwnd,msg,wparam,lparam
 	push	0
 	call	[CreateMutex]
 	mov	[edi],eax
-	pop	edi esi ebx
-	jmp	.done
+	jmp	.cleanup
       .release:
 	mov	ebx,[edi]
 	push	ebx
@@ -300,9 +301,15 @@ proc DialogProc hwnd,msg,wparam,lparam
 	push	ebx
 	call	[CloseHandle]
 	and	dword [edi],0
+	jmp	.cleanup
+      .switch:
+	xor	byte [edi],1
+      .cleanup:
 	pop	edi esi ebx
 	jmp	.done
     .wm_command:
+	cmp	[wparam],EN_SETFOCUS shl 16+IDC_RESULT
+	jnz	.done
 	push	IDC_RESULT
 	push	[hwnd]
 	call	[GetDlgItem]

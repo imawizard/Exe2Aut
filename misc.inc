@@ -38,7 +38,7 @@ FindPattern:
 	mov	eax,[esp]
 	sub	eax,edi
 	neg	eax
-	cmp	byte [edx+eax],6 ;'?'
+	cmp	byte [edx+eax],1
 	je	.compare
     .no_match:
 	pop	edi
@@ -79,7 +79,7 @@ RFindPattern:
 	mov	eax,[esp]
 	sub	eax,edi
 	neg	eax
-	cmp	byte [edx+eax],6 ;'?'
+	cmp	byte [edx+eax],1
 	je	.compare
     .no_match:
 	pop	edi

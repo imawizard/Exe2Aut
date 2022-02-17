@@ -137,9 +137,7 @@ section '.code' code readable executable
 	repnz	scasb
 	cld
 	lea	eax,[edi+1]
-	je	.found
-	mov	eax,esi
-    .found:
+	cmovnz	eax,esi
 	mov	dword [eax],'_.au'
 	mov	word [eax+4],'3'
 	pop	edi esi
@@ -1107,6 +1105,7 @@ section '.data' data readable writeable
   _nofiles db VERSION,':NoFileInstall',0
 
   ;=====================================================================================
+  ;     3_3_7_19
   ;     3_3_7_18
   ;     3_3_7_17
   ;     3_3_7_15
@@ -1139,15 +1138,15 @@ section '.data' data readable writeable
   ;     3_2_8_1
   _ptrn_3_2_8_0  db 059h,0EBh,000h,08Bh,000h,000h,000h,08Bh,000h,08Bh	    ;5.(reverse)
   ;=====================================================================================
-  _mask_3_3_7_7  db 1,2,4,6,6,6,1,7,6,6,0  ;'xxx...xx..x'
+  _mask_3_3_7_7  db 6,2,4,1,1,1,6,7,1,1,0  ;'xxx...xx..x'
   _size_3_3_7_7  =  $-_mask_3_3_7_7
-  _mask_3_3_7_0  db 5,4,6,1,6,9,3,6,7	   ;'xx.x.xx.x'
+  _mask_3_3_7_0  db 5,4,1,6,1,9,3,1,7	   ;'xx.x.xx.x'
   _size_3_3_7_0  =  $-_mask_3_3_7_0
-  _mask_3_3_0_0  db 9,3,6,6,6,4,6,6,6,1,8  ;'xx...x...xx'
+  _mask_3_3_0_0  db 9,3,1,1,1,4,1,1,1,6,8  ;'xx...x...xx'
   _size_3_3_0_0  =  $-_mask_3_3_0_0
-  _mask_3_2_10_0 db 3,0,6,7,6,6,5,6,9	   ;'xx.x..x.x'
+  _mask_3_2_10_0 db 3,0,1,7,1,1,5,1,9	   ;'xx.x..x.x'
   _size_3_2_10_0 =  $-_mask_3_2_10_0
-  _mask_3_2_8_0  db 7,2,6,1,6,6,6,0,6,5    ;'xx.x...x.x'
+  _mask_3_2_8_0  db 7,2,1,6,1,1,1,0,1,5    ;'xx.x...x.x'
   _size_3_2_8_0  =  $-_mask_3_2_8_0
   ;=====================================================================================
   _modrm_3_3_7_7  =  8
@@ -1164,11 +1163,11 @@ section '.data' data readable writeable
   _ptrn_open	db 055h,08Bh,0ECh,083h,0E4h,0F8h,081h,0ECh,000h,001h,000h,000h,053h,056h
   _ptrn_open2	db 055h,08Bh,0ECh,083h,0E4h,0F8h,081h,0ECh,000h,001h,000h,000h,056h,068h
   _ptrn_extract db 055h,08Bh,0ECh,083h,0E4h,0F8h,0B8h,000h,000h,001h,000h,0E8h
-  _mask_open	db 5,3,8,1,9,8,3,7,6,1,3,2,1,4	;'xxxxxxxx.xxxxx'
+  _mask_open	db 5,3,8,6,9,8,3,7,1,6,3,2,6,4	;'xxxxxxxx.xxxxx'
   _size_open	=  $-_mask_open
-  _mask_open2	db 9,8,3,8,1,5,3,2,6,7,3,7,9,2	;'xxxxxxxx.xxxxx'
+  _mask_open2	db 9,8,3,8,6,5,3,2,1,7,3,7,9,2	;'xxxxxxxx.xxxxx'
   _size_open2	=  $-_mask_open2
-  _mask_extract db 9,8,5,2,7,4,3,6,6,8,4,1	;'xxxxxxx..xxx'
+  _mask_extract db 9,8,5,2,7,4,3,1,1,8,4,6	;'xxxxxxx..xxx'
   _size_extract =  $-_mask_extract
   ;=====================================================================================
 
