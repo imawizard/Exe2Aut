@@ -921,6 +921,8 @@ endp
 	je	.neither
 	cmp	dword [dummy],'Fals'
 	je	.neither
+	cmp	dword [dummy],'Defa'
+	je	.neither
 	cmp	dword [dummy],'Enum'
 	je	.enum
 	cmp	dword [dummy],'Step'

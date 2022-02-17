@@ -147,7 +147,7 @@ section '.code' code readable executable
 	push	eax
 	call	[DialogBoxParam]
     .fin:
-	push	0
+	push	eax
 	call	[ExitProcess]
     .err:
 	push	MB_OK+MB_ICONINFORMATION+MB_SETFOREGROUND
@@ -201,6 +201,7 @@ section '.code' code readable executable
 	mov	[mp.lpszIcon],IDI_ICON1
 	push	mp
 	call	[MessageBoxIndirect]
+	xor	eax,eax
 	jmp	.fin
     .msgbox:
 	cmp	[be_quiet],1
@@ -210,6 +211,7 @@ section '.code' code readable executable
 	push	ecx
 	push	0
 	call	[MessageBox]
+	mov	eax,1
 	jmp	.fin
 
 proc DialogProc hwnd,msg,wparam,lparam
@@ -278,9 +280,7 @@ proc DialogProc hwnd,msg,wparam,lparam
 	push	WM_SETFONT
 	push	IDC_RESULT
 	push	[hwnd]
-	call	[GetDlgItem]
-	push	eax
-	call	[SendMessage]
+	call	[SendDlgItemMessage]
 	cmp	[path],0
 	je	.done
 	push	0
@@ -634,7 +634,7 @@ endp
 	cmovnz	eax,esi
 	mov	dword [eax],'_.au'
 	mov	word [eax+4],'3'
-	push	OF_READ
+	push	OF_READWRITE
 	push	path
 	call	[_lopen]
 	mov	ecx,NO_OUTPUT
@@ -645,9 +645,8 @@ endp
 	push	0
 	push	esi
 	call	[_llseek]
-	mov	ebx,eax
+	lea	ebx,[eax+1]
 	call	[GetProcessHeap]
-	inc	ebx
 	push	ebx
 	push	0
 	push	eax
