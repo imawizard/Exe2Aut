@@ -31,6 +31,10 @@ section '.code' code readable executable
 	push	dword [esi]
 	call	[lstrcmpiW]
 	je	.armadillo
+	push	_nfiswitch
+	push	dword [esi]
+	call	[lstrcmpiW]
+	je	.nofiles
 	push	_nogui
 	push	dword [esi]
 	call	[lstrcmpiW]
@@ -60,6 +64,13 @@ section '.code' code readable executable
 	push	0
 	call	[CreateMutex]
 	mov	[armmutex],eax
+	jmp	.next
+      .nofiles:
+	push	_nfimutex
+	push	0
+	push	0
+	call	[CreateMutex]
+	mov	[nfimutex],eax
 	jmp	.next
       .nogui:
 	mov	[no_gui],1
@@ -183,6 +194,16 @@ proc DialogProc hwnd,msg,wparam,lparam
 	push	eax
 	push	ebx
 	call	[AppendMenu]
+	mov	eax,MF_STRING
+	cmp	[nfimutex],0
+	je	.append_nfi
+	or	eax,MF_CHECKED
+      .append_nfi:
+	push	_nofiles
+	push	IDM_NOFILES
+	push	eax
+	push	ebx
+	call	[AppendMenu]
 	push	0
 	call	[GetModuleHandle]
 	push	0
@@ -232,12 +253,20 @@ proc DialogProc hwnd,msg,wparam,lparam
 	xor	eax,eax
 	cmp	[wparam],IDM_ARMDB
 	je	.armadillo
+	cmp	[wparam],IDM_NOFILES
+	je	.nofiles
 	jmp	.fin
       .armadillo:
 	push	ebx esi edi
 	mov	ebx,IDM_ARMDB
 	mov	esi,_armmutex
 	mov	edi,armmutex
+	jmp	.sysmenu
+      .nofiles:
+	push	ebx esi edi
+	mov	ebx,IDM_NOFILES
+	mov	esi,_nfimutex
+	mov	edi,nfimutex
       .sysmenu:
 	push	0
 	push	[hwnd]
@@ -675,6 +704,9 @@ section '.data' data readable writeable
   _armadillo db 'Armadillo''s Debug-Blocker',0
   _armswitch du '-armadillo',0
   _armmutex db VERSION,':Armadillo',0
+  _nofiles db 'Don''t Extract FileInstalls',0
+  _nfiswitch du '-nofiles',0
+  _nfimutex db VERSION,':NoFileInstall',0
   _nogui du '-nogui',0
   _quiet du '-quiet',0
 
@@ -685,6 +717,7 @@ section '.data' data readable writeable
   _si STARTUPINFO
 
   armmutex rd 1
+  nfimutex rd 1
   no_gui rb 1
   be_quiet rb 1
   argc rd 1
@@ -712,12 +745,13 @@ section '.idata' import data readable
 
 section '.rsrc' resource data readable
 
-  IDI_ICON1  = 1
-  IDI_ICON2  = 2
-  IDR_DLL    = 4
-  IDD_MAIN   = 100
-  IDC_RESULT = 101
-  IDM_ARMDB  = 102
+  IDI_ICON1   = 1
+  IDI_ICON2   = 2
+  IDR_DLL     = 4
+  IDD_MAIN    = 100
+  IDC_RESULT  = 101
+  IDM_ARMDB   = 102
+  IDM_NOFILES = 103
 
   directory RT_ICON,icons,\
 	    RT_GROUP_ICON,group_icons,\

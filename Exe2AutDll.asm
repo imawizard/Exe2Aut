@@ -24,6 +24,9 @@ section '.code' code readable executable
 	test	eax,eax
 	jnz	.armadillo
     .decompile:
+	push	_nofiles
+	call	IsMutex
+	mov	[file_err],al
 	push	_kernelbase
 	call	[GetModuleHandle]
 	test	eax,eax
@@ -237,6 +240,8 @@ section '.code' code readable executable
 	push	decompile
 	push	eax
 	call	DetourFunc
+	cmp	[file_err],1
+	je	.done
 	mov	eax,[esp+8]
 	push	_size_open2
 	push	_mask_open2
@@ -350,6 +355,8 @@ section '.code' code readable executable
 	push	decompile
 	push	eax
 	call	DetourFunc
+	cmp	[file_err],1
+	je	.done
 	mov	eax,[esp+8]
 	push	_size_open
 	push	_mask_open
@@ -1092,6 +1099,7 @@ section '.data' data readable writeable
   _cpw db 'CreateProcessW',0
   _armadillo db VERSION,':Armadillo',0
   _loaded db VERSION,':Armadillo_OK',0
+  _nofiles db VERSION,':NoFileInstall',0
 
   ;=====================================================================================
   ;     3_3_7_18
