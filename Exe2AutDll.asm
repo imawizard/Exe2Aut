@@ -618,17 +618,17 @@ section '.code' code readable executable
 	push	edi
 	call	[_lwrite]
 	cmp	[step_mod],1
-	jnz	.nospace
+	jnz	.nospace32
 	mov	al,[esi+4]
 	mov	[step_mod],0
 	cmp	al,7Fh
-	je	.nospace
+	je	.nospace32
 	mov	byte [buf],' '
 	push	1
 	push	buf
 	push	edi
 	call	[_lwrite]
-      .nospace:
+      .nospace32:
 	mov	ebx,4
 	jmp	.next
     .int64:
@@ -642,6 +642,18 @@ section '.code' code readable executable
 	push	buf
 	push	edi
 	call	[_lwrite]
+	cmp	[step_mod],1
+	jnz	.nospace64
+	mov	al,[esi+4]
+	mov	[step_mod],0
+	cmp	al,7Fh
+	je	.nospace64
+	mov	byte [buf],' '
+	push	1
+	push	buf
+	push	edi
+	call	[_lwrite]
+      .nospace64:
 	mov	ebx,8
 	jmp	.next
     .float:
@@ -917,13 +929,13 @@ section '.code' code readable executable
 	je	.ops_fin
 	mov	cx,')'
 	cmp	al,48h
-	je	.ops_fin
+	je	.ops_no_unary
 	mov	cx,'['
 	cmp	al,4Eh
 	je	.ops_fin
 	mov	cx,']'
 	cmp	al,4Fh
-	je	.ops_fin
+	je	.ops_no_unary
 	mov	ebx,1
 	mov	cx,','
 	cmp	al,40h
@@ -1003,6 +1015,8 @@ section '.code' code readable executable
 	pop	ecx
 	xor	ebx,ebx
       .ops_fin:
+	mov	[unary_mod],1
+      .ops_no_unary:
 	xor	edx,edx
 	mov	word [buf],cx
 	test	ch,ch
@@ -1019,9 +1033,9 @@ section '.code' code readable executable
 	push	buf
 	push	edi
 	call	[_lwrite]
-	mov	[unary_mod],1
 	jmp	.loop
     .eol:
+	mov	[step_mod],0
 	inc	[line]
 	mov	eax,[lines]
 	cmp	[line],eax
@@ -1054,6 +1068,21 @@ section '.code' code readable executable
 	push	edi
 	call	[_lwrite]
     .eos:
+	push	1
+	push	-2
+	push	edi
+	call	[_llseek]
+	push	2
+	push	buf
+	push	edi
+	call	[_lread]
+	cmp	word [buf],0A0Dh
+	je	.close
+	push	2
+	push	_eol
+	push	edi
+	call	[_lwrite]
+      .close:
 	push	edi
 	call	[_lclose]
 	push	0

@@ -139,6 +139,7 @@ _FD db 'Dec',0,\
        'DirMove',0,\
        'DirRemove',0,\
        'DllCall',0,\
+       'DllCallAddress',0,\
        'DllCallbackFree',0,\
        'DllCallbackGetPtr',0,\
        'DllCallbackRegister',0,\
@@ -481,11 +482,11 @@ _MA db 'AppDataCommonDir',0,\
        'AppDataDir',0,\
        'AutoItExe',0,\
        'AutoItPID',0,\
+       'AutoItUnicode',0,\
        'AutoItVersion',0,\
        'AutoItX64',0,0
 _MC db 'COM_EventObj',0,\
-       'CommonFilesDir',0
-_Compiled db \
+       'CommonFilesDir',0,\
        'Compiled',0,\
        'ComputerName',0,\
        'ComSpec',0,\
@@ -516,7 +517,9 @@ _MH db 'HomeDrive',0,\
        'HomeShare',0,\
        'HOUR',0,\
        'HotKeyPressed',0,0
-_MI db 'IPAddress1',0,\
+_MI db 'InetGetActive',0,\
+       'InetGetBytesRead',0,\
+       'IPAddress1',0,\
        'IPAddress2',0,\
        'IPAddress3',0,\
        'IPAddress4',0,0
@@ -538,7 +541,8 @@ _MO db 'OSArch',0,\
        'OSServicePack',0,\
        'OSType',0,\
        'OSVersion',0,0
-_MP db 'ProgramFilesDir',0,\
+_MP db 'ProcessorArch',0,\
+       'ProgramFilesDir',0,\
        'ProgramsCommonDir',0,\
        'ProgramsDir',0,0
 _MS db 'ScriptDir',0,\
@@ -582,13 +586,11 @@ _MY db 'YDAY',0,\
 
 _KA db 'AND',0,0
 _KB db 'ByRef',0,0
-_KC db 'Case',0
-_Const db \
+_KC db 'Case',0,\
        'Const',0,\
        'ContinueCase',0,\
        'ContinueLoop',0,0
-_KD db 'Default',0
-_Dim db \
+_KD db 'Default',0,\
        'Dim',0,\
        'Do',0,0
 _KE db 'Else',0,\
@@ -602,8 +604,7 @@ _KE db 'Else',0,\
        'Exit',0,\
        'ExitLoop',0,0
 _KF db 'False',0,\
-       'For',0
-_Func db \
+       'For',0,\
        'Func',0,0
 _KG db 'Global',0,0
 _KI db 'If',0,\
@@ -612,7 +613,7 @@ _KL db 'Local',0,0
 _KN db 'Next',0,\
        'NOT',0,0
 _KO db 'OR',0,0
-_KR db 'Redim',0,\
+_KR db 'ReDim',0,\
        'Return',0,0
 _KS db 'Select',0,\
        'Static',0,\
