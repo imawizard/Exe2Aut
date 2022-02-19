@@ -36,6 +36,21 @@ macro menu_sep
    push ebx
    call [AppendMenu] }
 
+macro on_arg src,to_cmp,goto,count
+ { if count eq
+    push to_cmp
+    push src
+    call [lstrcmpiW]
+   else
+    push count
+    push to_cmp
+    push src
+    call [wcsncmp]
+    add esp,0Ch
+   end if
+   test eax,eax
+   je goto }
+
 section '.code' code readable executable
 
   start:
@@ -57,22 +72,11 @@ section '.code' code readable executable
 	lea	esi,[eax+4]
 	dec	ebx
     .argv:
-	push	_armswitch
-	push	dword [esi]
-	call	[lstrcmpiW]
-	je	.armadillo
-	push	_nfiswitch
-	push	dword [esi]
-	call	[lstrcmpiW]
-	je	.nofiles
-	push	_nogui
-	push	dword [esi]
-	call	[lstrcmpiW]
-	je	.nogui
-	push	_quiet
-	push	dword [esi]
-	call	[lstrcmpiW]
-	je	.quiet
+	mov	edi,[esi]
+	on_arg	dword [esi],_armswitch,.armadillo
+	on_arg	dword [esi],_nfiswitch,.nofiles
+	on_arg	dword [esi],_nogui,.nogui
+	on_arg	dword [esi],_quiet,.quiet
 	push	esi
 	mov	esi,[esi]
 	mov	edi,path
