@@ -8,6 +8,22 @@ ERROR_ALREADY_EXISTS = 0B7h
 PBS_MARQUEE	     = 8
 PBM_SETMARQUEE	     = WM_USER+10
 HTCAPTION	     = 2
+ECM_FIRST	     = 1500h
+EM_SHOWBALLOONTIP    = ECM_FIRST+3
+TTI_NONE	     = 0
+TTI_INFO	     = 1
+TTI_WARNING	     = 2
+TTI_ERROR	     = 3
+TTI_INFO_LARGE	     = 4
+TTI_WARNING_LARGE    = 5
+TTI_ERROR_LARGE      = 6
+
+struct EDITBALLOONTIP
+  cbStruct dd ?
+  pszTitle dd ?
+  pszText  dd ?
+  ttiIcon  dd ?
+ends
 
 macro menu_item idm,caption,mutex,flags
  { if ~ mutex eq
@@ -498,6 +514,31 @@ proc decompile_thread len
 	pop	ecx
 	test	ecx,ecx
 	je	.finalize
+	push	_@compiled
+	push	esi
+	call	stristr
+	add	esp,8
+	sub	eax,esi
+	js	.finalize
+	lea	ecx,[eax+9]
+	push	ecx
+	push	eax
+	push	EM_SETSEL
+	push	IDC_RESULT
+	push	[main_hwnd]
+	call	[SendDlgItemMessage]
+	push	0
+	push	0
+	push	EM_SCROLLCARET
+	push	IDC_RESULT
+	push	[main_hwnd]
+	call	[SendDlgItemMessage]
+	push	ebt
+	push	0
+	push	EM_SHOWBALLOONTIP
+	push	IDC_RESULT
+	push	[main_hwnd]
+	call	[SendDlgItemMessage]
 	jmp	.finalize
     .didntwork:
 	mov	[esp],ecx
@@ -1156,6 +1197,7 @@ section '.data' data readable writeable
   _output db 'Apparently, it didn''t work..',0
   _failed db 'Something went wrong..',0
   _title db 'Exe2Aut',0
+  _wtitle du 'Exe2Aut',0
   _32bit db 'Only 32bit PE files are supported!',0
   _error db 'Either it''s not a PE file or it''s corrupted!',0
   _nopath db 'No file specified!',0
@@ -1176,7 +1218,7 @@ section '.data' data readable writeable
   _always db 'Always',0
   _never db 'Never',0
   _about db 'About',0
-  _compiled_macro db 'Script contains » @Compiled « !',\
+  _compiled_macro du '» @Compiled « was found at least once!',\
 		     13,10,'You should probably look into that.',0
   _nogui du '-nogui',0
   _quiet du '-quiet',0
@@ -1189,6 +1231,8 @@ section '.data' data readable writeable
   s_rename dd 0
   s_fileinst dd BST_CHECKED
   s_compiled dd BST_UNCHECKED
+
+  ebt EDITBALLOONTIP sizeof.EDITBALLOONTIP,_wtitle,_compiled_macro,TTI_INFO
 
   deobfus_idata
   gfx_idata
