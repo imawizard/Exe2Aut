@@ -442,18 +442,32 @@ proc replace_var src,name,value
 	push	ebx
 	call	[atoi]
 	add	esp,4
-	cmp	eax,-255
-	jl	.hex
+	cmp	eax,-15
+	jl	.negate
 	cmp	eax,15
 	jg	.hex
 	jmp	.fin
-    .hex:
-	mov	esi,_var
-	push	0
+    .negate:
+	test	eax,7FFFFFFFh
+	je	.hex
+	neg	eax
+	mov	ebx,_var
+	lea	ecx,[ebx+3]
+	push	8
 	push	eax
-	push	esi
+	push	ecx
 	call	pad_hex
-	mov	ebx,esi
+	mov	word [ebx],'-0'
+	mov	byte [ebx+2],'x'
+	jmp	.fin
+    .hex:
+	mov	ebx,_var
+	lea	ecx,[ebx+2]
+	push	8
+	push	eax
+	push	ecx
+	call	pad_hex
+	mov	word [ebx],'0x'
 	jmp	.fin
 endp
 
@@ -716,10 +730,6 @@ proc rename_globals src
 	sub	eax,esi
 	sub	eax,ecx
 	mov	[pos],eax
-	cmp	byte [edx],'R'
-	je	.loop
-	cmp	byte [edx],'D'
-	je	.loop
 	lea	eax,[edx+1]
 	lea	ebx,[edx+1]
 	cut_delimited eax,'(',')'
@@ -793,10 +803,6 @@ proc rename_locals src
 	sub	eax,ecx
 	mov	[pos],eax
 	cmp	byte [edx],'G'
-	je	.loop
-	cmp	byte [edx],'R'
-	je	.loop
-	cmp	byte [edx],'D'
 	je	.loop
 	lea	eax,[edx+1]
 	lea	ebx,[edx+1]
@@ -1165,6 +1171,7 @@ proc pad_number dest,num,pad
 	jae	.fin
 	sub	ebx,eax
 	lea	edx,[edi+ebx]
+	inc	eax
 	push	eax
 	push	edi
 	push	edx
@@ -1194,6 +1201,7 @@ proc pad_hex dest,num,pad
 	jae	.fin
 	sub	ebx,eax
 	lea	edx,[edi+ebx]
+	inc	eax
 	push	eax
 	push	edi
 	push	edx
@@ -1227,7 +1235,7 @@ macro deobfus_idata
   _fnend db 'EndFunc',0
   _fnname db '[^(]+',0
   _fnparams db '|(|[^)]*',0
-  _fnlocals db '[DRCGL]|[ielo][mdnoc][isba]?[mtal]?[l]? [C]?[o]?[n]?[s]?[t]?[ ]?\$|[[:word:]]+[^\r\n]*',0
+  _fnlocals db '[CGL]|[lo][noc][sba][tal][l]? [C]?[o]?[n]?[s]?[t]?[ ]?\$|[[:word:]]+[^\r\n]*',0
   _fnparamsep db ', ',0
   _fnlocalsep db ', $',0
   _fnparam db '\$'
@@ -1265,7 +1273,7 @@ macro deobfus_idata
   _quotes_twice db '""',0
   _quotes db '"',0
   _trimmacro db '|[[:space:]]*|@[[:word:]]+',0
-  _trimnum db '|[[:space:]]*|[[:digit:].]+',0
+  _trimnum db '|[[:space:]]*|[.[:digit:]]+',0
 
   _fileinstall db '|$FileInstall$[^(]*(["'']|[^"'']+["''],',0
   _@compiled db '@Compiled',0
