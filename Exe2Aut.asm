@@ -469,11 +469,6 @@ proc decompile_thread len
 	push	IDC_RESULT
 	push	[main_hwnd]
 	call	[SetDlgItemText]
-	call	[GetProcessHeap]
-	push	esi
-	push	0
-	push	eax
-	call	[HeapFree]
 	push	0
 	call	[GetModuleHandle]
 	push	0
@@ -512,6 +507,11 @@ proc decompile_thread len
 	push	[main_hwnd]
 	call	[SetDlgItemText]
     .finalize:
+	call	[GetProcessHeap]
+	push	esi
+	push	0
+	push	eax
+	call	[HeapFree]
 	cmp	[armmutex],0
 	je	.fin
 	push	0
@@ -1176,7 +1176,7 @@ section '.data' data readable writeable
   s_deobfusc dd BST_CHECKED
   s_rename dd 0
   s_fileinst dd BST_CHECKED
-  s_compiled dd BST_INDETERMINATE
+  s_compiled dd BST_UNCHECKED
 
   deobfus_idata
   gfx_idata
@@ -1323,7 +1323,7 @@ section '.rsrc' resource data readable
     dialogitem 'button','',IDC_FILEINST,102,12+14*2,12,12,WS_VISIBLE+BS_FLAT+BS_AUTOCHECKBOX
     dialogitem 'static','Replace @Compiled',-1,12,14+14*3,82,12,WS_VISIBLE
     dialogitem 'static',':',-1,12+83,14+14*3,6,12,WS_VISIBLE
-    dialogitem 'button','',IDC_COMPILED,102,12+14*3,12,12,WS_VISIBLE+BS_FLAT+BS_AUTO3STATE
+    dialogitem 'button','',IDC_COMPILED,102,12+14*3,12,12,WS_VISIBLE+BS_FLAT+BS_AUTOCHECKBOX
     dialogitem 'button','OK',IDC_SAVE,0,0,24,16,WS_VISIBLE,WS_EX_STATICEDGE
   enddialog
 
