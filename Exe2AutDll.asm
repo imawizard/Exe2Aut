@@ -1206,6 +1206,8 @@ section '.code' code readable executable
 
 section '.data' data readable writeable
 
+  VERSION equ 'Exe2Autv4'
+
   _kernel32 db 'kernel32.dll',0
   _user32 db 'user32.dll',0
   _ws2_32 db 'ws2_32.dll',0
@@ -1213,12 +1215,14 @@ section '.data' data readable writeable
   _gclw db 'GetCommandLineW',0
   _spia db 'SystemParametersInfoA',0
   _cpw db 'CreateProcessW',0
-  _armadillo db 'Exe2Autv3:Armadillo',0
-  _loaded db 'Exe2Autv3:Armadillo_OK',0
-  _rename db 'Exe2Autv3:Rename',0
-  _adjust db 'Exe2Autv3:Adjust',0
+  _armadillo db VERSION,':Armadillo',0
+  _loaded db VERSION,':Armadillo_OK',0
+  _rename db VERSION,':Rename',0
+  _adjust db VERSION,':Adjust',0
 
   ;=====================================================================================
+  ;     3_3_7_18
+  ;     3_3_7_17
   ;     3_3_7_15
   ;     3_3_7_14
   ;     3_3_7_13

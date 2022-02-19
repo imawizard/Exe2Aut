@@ -583,6 +583,7 @@ endp
 
 section '.data' data readable writeable
 
+  VERSION equ 'Exe2Autv4'
   WINDOW_TITLE equ 'Exe2Aut - AutoIt3 Decompiler'
 
   _courier db 'Courier New',0
@@ -590,18 +591,18 @@ section '.data' data readable writeable
   _failed db 'Something went wrong..',0
   _title db 'Exe2Aut',0
   _error db 'Either it''s not a PE file or it''s corrupted!',0
-  _mutex db 'Exe2Autv3',0
+  _mutex db VERSION,0
   _already db 'I''m already running!',0
   _window db WINDOW_TITLE,0
   _armadillo db 'Armadillo''s Debug-Blocker',0
   _armswitch du '-armadillo',0
-  _armmutex db 'Exe2Autv3:Armadillo',0
+  _armmutex db VERSION,':Armadillo',0
   _rename db 'Give all Symbols ''default'' Names',0
   _renswitch du '-rename',0
-  _renmutex db 'Exe2Autv3:Rename',0
+  _renmutex db VERSION,':Rename',0
   _adjust db 'Adjust FileInstall and @Compiled',0
   _adjswitch du '-adjust',0
-  _adjmutex db 'Exe2Autv3:Adjust',0
+  _adjmutex db VERSION,':Adjust',0
 
   path rb 256
   pathdll rb 256
