@@ -19,10 +19,10 @@ TTI_WARNING_LARGE    = 5
 TTI_ERROR_LARGE      = 6
 
 struct EDITBALLOONTIP
-  cbStruct dd ?
-  pszTitle dd ?
-  pszText  dd ?
-  ttiIcon  dd ?
+  cbStruct rd 1
+  pszTitle rd 1
+  pszText  rd 1
+  ttiIcon  rd 1
 ends
 
 macro menu_item idm,caption,mutex,flags

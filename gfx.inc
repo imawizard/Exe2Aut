@@ -6,10 +6,10 @@ MIN_TEXT = 30
 MIN_DONE = 100
 
 struct ORB
-  angle dd ?
-  radius dd ?
-  rate dd ?
-  backwards db ?
+  angle     rd 1
+  radius    rd 1
+  rate	    rd 1
+  backwards rb 1
 ends
 
 proc GFX_INIT hwnd

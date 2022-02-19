@@ -4,13 +4,13 @@ MUTEX_ALL_ACCESS     = 1F0001h
 SEMAPHORE_ALL_ACCESS = 1F0003h
 
 struct MEMORY_BASIC_INFORMATION
-  BaseAddress	    dd ?
-  AllocationBase    dd ?
-  AllocationProtect dd ?
-  RegionSize	    dd ?
-  State 	    dd ?
-  Protect	    dd ?
-  Type		    dd ?
+  BaseAddress	    rd 1
+  AllocationBase    rd 1
+  AllocationProtect rd 1
+  RegionSize	    rd 1
+  State 	    rd 1
+  Protect	    rd 1
+  Type		    rd 1
 ends
 
 FindPattern:

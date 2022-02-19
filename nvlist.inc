@@ -1,10 +1,10 @@
 
 struct NVList
-  List		dd ?
-  Heap		dd ?
-  _Count	dd ?
-  _Capacity	dd ?
-  _IsStringList db ?
+  List		rd 1
+  Heap		rd 1
+  _Count	rd 1
+  _Capacity	rd 1
+  _IsStringList rb 1
 ends
 
 ; First parameter is always SelfPtr

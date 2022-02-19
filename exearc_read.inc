@@ -24,9 +24,9 @@ HS_EXEARC_E_MEMALLOC	 = 8
 HS_EXEARC_MAXPWDLEN	 = 256
 
 struct HS_EXEArc_Read
-  m_fEXE	    dd ?
-  m_nArchivePtr     dd ?
-  m_nFileSectionPtr dd ?
-  m_szPwd	    db HS_EXEARC_MAXPWDLEN+1 dup (?)
-  m_nPwdHash	    dd ?
+  m_fEXE	    rd 1
+  m_nArchivePtr     rd 1
+  m_nFileSectionPtr rd 1
+  m_szPwd	    rb HS_EXEARC_MAXPWDLEN+1
+  m_nPwdHash	    rd 1
 ends
