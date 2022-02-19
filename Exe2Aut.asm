@@ -214,6 +214,16 @@ section '.code' code readable executable
 	mov	eax,1
 	jmp	.fin
 
+  UponStart:
+	push	100
+	call	[Sleep]
+	push	0
+	push	-1
+	push	WM_DROPFILES
+	push	[main_hwnd]
+	call	[PostMessage]
+	retn	4
+
 proc DialogProc hwnd,msg,wparam,lparam
 	cmp	[msg],WM_INITDIALOG
 	je	.wm_initdialog
@@ -284,10 +294,12 @@ proc DialogProc hwnd,msg,wparam,lparam
 	cmp	[path],0
 	je	.done
 	push	0
-	push	-1
-	push	WM_DROPFILES
-	push	[hwnd]
-	call	[PostMessage]
+	push	0
+	push	0
+	push	UponStart
+	push	0
+	push	0
+	call	[CreateThread]
 	jmp	.done
     .wm_getminmaxinfo:
 	mov	eax,[lparam]
