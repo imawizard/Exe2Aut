@@ -484,7 +484,8 @@ _MA db 'AppDataCommonDir',0,\
        'AutoItVersion',0,\
        'AutoItX64',0,0
 _MC db 'COM_EventObj',0,\
-       'CommonFilesDir',0,\
+       'CommonFilesDir',0
+_Compiled db \
        'Compiled',0,\
        'ComputerName',0,\
        'ComSpec',0,\

@@ -34,6 +34,10 @@ section '.code' code readable executable
 	push	dword [esi]
 	call	[lstrcmpiW]
 	je	.rename
+	push	_adjswitch
+	push	dword [esi]
+	call	[lstrcmpiW]
+	je	.adjust
 	jmp	.next
       .armadillo:
 	push	_armmutex
@@ -48,6 +52,13 @@ section '.code' code readable executable
 	push	0
 	call	[CreateMutex]
 	mov	[renmutex],eax
+	jmp	.next
+      .adjust:
+	push	_adjmutex
+	push	0
+	push	0
+	call	[CreateMutex]
+	mov	[adjmutex],eax
     .next:
 	add	esi,4
 	dec	ebx
@@ -126,6 +137,21 @@ proc DialogProc hwnd,msg,wparam,lparam
 	push	ebx
 	call	[AppendMenu]
 	push	0
+	push	0
+	push	MF_SEPARATOR
+	push	ebx
+	call	[AppendMenu]
+	mov	eax,MF_STRING
+	cmp	[adjmutex],0
+	je	.append_adj
+	or	eax,MF_CHECKED
+      .append_adj:
+	push	_adjust
+	push	IDM_ADJUST
+	push	eax
+	push	ebx
+	call	[AppendMenu]
+	push	0
 	call	[GetModuleHandle]
 	push	0
 	push	16
@@ -162,6 +188,8 @@ proc DialogProc hwnd,msg,wparam,lparam
 	je	.armadillo
 	cmp	[wparam],IDM_RENAME
 	je	.rename
+	cmp	[wparam],IDM_ADJUST
+	je	.adjust
 	jmp	.fin
       .armadillo:
 	push	ebx esi edi
@@ -174,6 +202,12 @@ proc DialogProc hwnd,msg,wparam,lparam
 	mov	ebx,IDM_RENAME
 	mov	esi,_renmutex
 	mov	edi,renmutex
+	jmp	.sysmenu
+      .adjust:
+	push	ebx esi edi
+	mov	ebx,IDM_ADJUST
+	mov	esi,_adjmutex
+	mov	edi,adjmutex
       .sysmenu:
 	push	0
 	push	[hwnd]
@@ -565,6 +599,9 @@ section '.data' data readable writeable
   _rename db 'Give all Symbols ''default'' Names',0
   _renswitch du '-rename',0
   _renmutex db 'Exe2Autv3:Rename',0
+  _adjust db 'Adjust FileInstall and @Compiled',0
+  _adjswitch du '-adjust',0
+  _adjmutex db 'Exe2Autv3:Adjust',0
 
   path rb 256
   pathdll rb 256
@@ -574,6 +611,7 @@ section '.data' data readable writeable
 
   armmutex rd 1
   renmutex rd 1
+  adjmutex rd 1
   argc rd 1
   font rd 1
 
@@ -605,6 +643,7 @@ section '.rsrc' resource data readable
   IDC_RESULT = 101
   IDM_ARMDB  = 102
   IDM_RENAME = 103
+  IDM_ADJUST = 104
 
   directory RT_ICON,icons,\
 	    RT_GROUP_ICON,group_icons,\
