@@ -1,3 +1,5 @@
 .DS_Store
 Exe2Aut.exe
 Exe2AutDll.dll
+Exe2AutDll64.dll
+InjectDll64.exe

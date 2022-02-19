@@ -5,6 +5,7 @@ entry start
 include 'win32a.inc'
 
 ERROR_ALREADY_EXISTS = 0B7h
+SCS_64BIT_BINARY     = 6
 PBS_MARQUEE	     = 8
 PBM_SETMARQUEE	     = WM_USER+10
 HTCAPTION	     = 2
@@ -188,8 +189,8 @@ section '.code' code readable executable
 	je	.msgbox
 	xchg	eax,edx
 	call	decompile
-	mov	ecx,_32bit
-	cmp	eax,NO_32BIT
+	mov	ecx,_3264bit
+	cmp	eax,NO_3264BIT
 	je	.msgbox
 	mov	ecx,_error
 	cmp	eax,NO_PROCESS
@@ -480,8 +481,8 @@ proc decompile_thread len
 	mov	edx,[len]
 	call	decompile
 	push	ecx
-	mov	ecx,_32bit
-	cmp	eax,NO_32BIT
+	mov	ecx,_3264bit
+	cmp	eax,NO_3264BIT
 	je	.err
 	mov	ecx,_error
 	cmp	eax,NO_PROCESS
@@ -608,9 +609,15 @@ endp
 	call	[GetBinaryType]
 	mov	eax,[esp]
 	add	esp,4
-	mov	ecx,NO_32BIT
+	xor	edi,edi
 	cmp	eax,SCS_32BIT_BINARY
-	jnz	.fin
+	je	.start
+	inc	edi
+	cmp	eax,SCS_64BIT_BINARY
+	je	.start
+	mov	ecx,NO_3264BIT
+	jmp	.fin
+    .start:
 	mov	[_si.cb],sizeof.STARTUPINFO
 	xor	eax,eax
 	push	_pi
@@ -639,10 +646,45 @@ endp
 	push	pathdll
 	call	[_lcreat]
 	push	eax
+	lea	eax,[IDR_DLL+edi]
 	sub	esp,4
 	push	esp
 	push	RT_ICON
-	push	IDR_DLL
+	push	eax
+	call	LoadResfile
+	mov	ecx,[esp]
+	add	esp,4
+	mov	edx,[esp]
+	push	ecx
+	push	eax
+	push	edx
+	call	[_lwrite]
+	call	[_lclose]
+	test	edi,edi
+	jnz	.x64
+	push	pathdll
+	push	[_pi.dwProcessId]
+	call	InjectDll
+	test	eax,eax
+	je	.err
+	jmp	.wait
+    .x64:
+	push	inj64
+	push	256
+	call	[GetTempPath]
+	push	inj64
+	push	0
+	push	0
+	push	inj64
+	call	[GetTempFileName]
+	push	0
+	push	inj64
+	call	[_lcreat]
+	push	eax
+	sub	esp,4
+	push	esp
+	push	RT_ICON
+	push	IDR_INJ64
 	call	LoadResfile
 	mov	ecx,[esp]
 	add	esp,4
@@ -653,10 +695,65 @@ endp
 	call	[_lwrite]
 	call	[_lclose]
 	push	pathdll
+	call	[strlen]
+	add	esp,4
+	std
+	lea	esi,[pathdll-1+eax]
+	lea	edi,[esi+2]
+	push	edi
+	xchg	eax,ecx
+	rep	movsb
+	pop	edi
+	cld
+	inc	edi
+	mov	word [pathdll],' "'
+	mov	word [edi],'" '
+	add	edi,2
+	push	10
+	push	edi
 	push	[_pi.dwProcessId]
-	call	InjectDll
-	test	eax,eax
+	call	[itoa]
+	add	esp,0Ch
+	push	pathdll
+	push	inj64
+	call	[strcat]
+	add	esp,8
+	mov	[_si2.cb],sizeof.STARTUPINFO
+	xor	eax,eax
+	push	_pi2
+	push	_si2
+	push	eax
+	push	eax
+	push	eax
+	push	eax
+	push	eax
+	push	eax
+	push	inj64
+	push	eax
+	call	[CreateProcess]
+	push	-1
+	push	[_pi2.hProcess]
+	call	[WaitForSingleObject]
+	sub	esp,4
+	push	esp
+	push	[_pi2.hProcess]
+	call	[GetExitCodeProcess]
+	mov	ebx,[esp]
+	add	esp,4
+	mov	edi,inj64
+	mov	al,'"'
+	or	ecx,-1
+	repnz	scasb
+	mov	byte [edi-2],0
+	push	inj64
+	call	[DeleteFile]
+	push	[_pi2.hProcess]
+	call	[CloseHandle]
+	push	[_pi2.hThread]
+	call	[CloseHandle]
+	test	ebx,ebx
 	je	.err
+    .wait:
 	push	[_pi.hThread]
 	call	[ResumeThread]
 	push	-1
@@ -1188,7 +1285,7 @@ section '.data' data readable writeable
   VERSION equ 'Exe2Autv5'
   WINDOW_TITLE equ 'Exe2Aut - AutoIt3 Decompiler'
 
-  NO_32BIT     = 1
+  NO_3264BIT   = 1
   NO_PROCESS   = 2
   NO_INJECTION = 3
   NO_OUTPUT    = 4
@@ -1198,7 +1295,7 @@ section '.data' data readable writeable
   _failed db 'Something went wrong..',0
   _title db 'Exe2Aut',0
   _wtitle du 'Exe2Aut',0
-  _32bit db 'Only 32bit PE files are supported!',0
+  _3264bit db 'Only 32/64bit PE files are supported!',0
   _error db 'Either it''s not a PE file or it''s corrupted!',0
   _nopath db 'No file specified!',0
   _notfound db 'File not found!',0
@@ -1239,9 +1336,12 @@ section '.data' data readable writeable
 
   path rb 256
   pathdll rb 256
+  inj64 rb 256
 
-  _pi PROCESS_INFORMATION
-  _si STARTUPINFO
+  _pi  PROCESS_INFORMATION
+  _pi2 PROCESS_INFORMATION
+  _si  STARTUPINFO
+  _si2 STARTUPINFO
 
   armmutex rd 1
   nfimutex rd 1
@@ -1298,6 +1398,8 @@ section '.rsrc' resource data readable
   IDI_ICON1    = 1
   IDI_ICON2    = 2
   IDR_DLL      = 4
+  IDR_DLL64    = 5
+  IDR_INJ64    = 6
   IDD_MAIN     = 100
   IDD_DEOBFU   = 101
   IDD_PROGRESS = 102
@@ -1324,7 +1426,9 @@ section '.rsrc' resource data readable
 	   1,LANG_ENGLISH+SUBLANG_DEFAULT,icon_data,\
 	   2,LANG_ENGLISH+SUBLANG_DEFAULT,icon_data2,\
 	   3,LANG_ENGLISH+SUBLANG_DEFAULT,icon_data3,\
-	   IDR_DLL,LANG_ENGLISH+SUBLANG_DEFAULT,exe2autdll
+	   IDR_DLL,LANG_ENGLISH+SUBLANG_DEFAULT,exe2autdll,\
+	   IDR_DLL64,LANG_ENGLISH+SUBLANG_DEFAULT,exe2autdll64,\
+	   IDR_INJ64,LANG_ENGLISH+SUBLANG_DEFAULT,injectdll64
 
   resource group_icons,\
 	   IDI_ICON1,LANG_ENGLISH+SUBLANG_DEFAULT,main_icon,\
@@ -1349,6 +1453,14 @@ section '.rsrc' resource data readable
 
   resdata exe2autdll
     file 'Exe2AutDll.dll'
+  endres
+
+  resdata exe2autdll64
+    file 'Exe2AutDll64.dll'
+  endres
+
+  resdata injectdll64
+    file 'InjectDll64.exe'
   endres
 
   resdata manifest
