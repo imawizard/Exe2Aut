@@ -25,6 +25,7 @@ section '.code' code readable executable
 	je	.free
 	mov	ebx,[argc]
 	lea	esi,[eax+4]
+	dec	ebx
     .argv:
 	push	_armswitch
 	push	dword [esi]
@@ -38,6 +39,28 @@ section '.code' code readable executable
 	push	dword [esi]
 	call	[lstrcmpiW]
 	je	.adjust
+	push	_nogui
+	push	dword [esi]
+	call	[lstrcmpiW]
+	je	.nogui
+	push	_quiet
+	push	dword [esi]
+	call	[lstrcmpiW]
+	je	.quiet
+	push	esi
+	mov	esi,[esi]
+	mov	edi,path
+      .copy:
+	lodsw
+	stosb
+	test	al,al
+	jnz	.copy
+	pop	esi
+	push	path
+	call	[GetFileAttributes]
+	test	eax,eax
+	jns	.next
+	mov	word [path],0100h
 	jmp	.next
       .armadillo:
 	push	_armmutex
@@ -59,12 +82,20 @@ section '.code' code readable executable
 	push	0
 	call	[CreateMutex]
 	mov	[adjmutex],eax
+	jmp	.next
+      .nogui:
+	mov	[no_gui],1
+	jmp	.next
+      .quiet:
+	mov	[be_quiet],1
     .next:
 	add	esi,4
 	dec	ebx
 	jnz	.argv
     .free:
 	call	[LocalFree]
+	cmp	[no_gui],1
+	je	.hidden
 	push	0
 	call	[GetModuleHandle]
 	push	0
@@ -87,6 +118,56 @@ section '.code' code readable executable
 	call	[FindWindow]
 	push	eax
 	call	[SetForegroundWindow]
+	jmp	.fin
+    .hidden:
+	mov	ecx,_notfound
+	cmp	[path+1],1
+	je	.msgbox
+	push	path
+	call	[lstrlen]
+	mov	ecx,_nopath
+	test	eax,eax
+	je	.msgbox
+	xchg	eax,edx
+	call	decompile
+	mov	ecx,_32bit
+	cmp	eax,NO_32BIT
+	je	.msgbox
+	mov	ecx,_error
+	cmp	eax,NO_PROCESS
+	je	.msgbox
+	mov	ecx,_failed
+	cmp	eax,NO_INJECTION
+	je	.msgbox
+	mov	ecx,_output
+	cmp	eax,NO_OUTPUT
+	je	.msgbox
+	push	edx
+	call	[GetProcessHeap]
+	push	0
+	push	eax
+	call	[HeapFree]
+	cmp	[be_quiet],1
+	je	.fin
+	push	0
+	call	[GetModuleHandle]
+	mov	[mp.cbSize],sizeof.MSGBOXPARAMS
+	mov	[mp.hInstance],eax
+	mov	[mp.lpszText],_done
+	mov	[mp.lpszCaption],_title
+	mov	[mp.dwStyle],MB_OK+MB_SETFOREGROUND+MB_USERICON
+	mov	[mp.lpszIcon],IDI_ICON1
+	push	mp
+	call	[MessageBoxIndirect]
+	jmp	.fin
+    .msgbox:
+	cmp	[be_quiet],1
+	je	.fin
+	push	MB_OK+MB_ICONINFORMATION+MB_SETFOREGROUND
+	push	_title
+	push	ecx
+	push	0
+	call	[MessageBox]
 	jmp	.fin
 
 proc DialogProc hwnd,msg,wparam,lparam
@@ -186,6 +267,13 @@ proc DialogProc hwnd,msg,wparam,lparam
 	call	[GetDlgItem]
 	push	eax
 	call	[SendMessage]
+	cmp	[path],0
+	je	.done
+	push	0
+	push	-1
+	push	WM_DROPFILES
+	push	[hwnd]
+	call	[PostMessage]
 	jmp	.done
     .wm_syscommand:
 	xor	eax,eax
@@ -272,6 +360,8 @@ proc DialogProc hwnd,msg,wparam,lparam
 	call	[MoveWindow]
 	jmp	.done
     .wm_dropfiles:
+	cmp	[wparam],-1
+	je	.directly
 	push	256
 	push	path
 	push	0
@@ -281,7 +371,95 @@ proc DialogProc hwnd,msg,wparam,lparam
 	push	[wparam]
 	call	[DragFinish]
 	pop	edx
-	push	edi
+	jmp	.dothejob
+      .directly:
+	push	path
+	call	[lstrlen]
+	xchg	eax,edx
+      .dothejob:
+	call	decompile
+	mov	ecx,_32bit
+	cmp	eax,NO_32BIT
+	je	.err
+	mov	ecx,_error
+	cmp	eax,NO_PROCESS
+	je	.err
+	mov	ecx,_failed
+	cmp	eax,NO_INJECTION
+	je	.output
+	mov	ecx,_output
+	cmp	eax,NO_OUTPUT
+	je	.output
+	push	edx
+	push	edx
+	push	IDC_RESULT
+	push	[hwnd]
+	call	[SetDlgItemText]
+	call	[GetProcessHeap]
+	push	0
+	push	eax
+	call	[HeapFree]
+	push	0
+	call	[GetModuleHandle]
+	push	0
+	push	16
+	push	16
+	push	IMAGE_ICON
+	push	IDI_ICON1
+	push	eax
+	call	[LoadImage]
+	push	eax
+	push	0
+	push	WM_SETICON
+	push	[hwnd]
+	call	[SendMessage]
+	cmp	[armmutex],0
+	je	.done
+	push	0
+	push	IDM_ARMDB
+	push	WM_SYSCOMMAND
+	push	[hwnd]
+	call	[SendMessage]
+	jmp	.done
+      .output:
+	push	ecx
+	push	0
+	call	[GetModuleHandle]
+	push	0
+	push	16
+	push	16
+	push	IMAGE_ICON
+	push	IDI_ICON2
+	push	eax
+	call	[LoadImage]
+	push	eax
+	push	0
+	push	WM_SETICON
+	push	[hwnd]
+	call	[SendMessage]
+	push	IDC_RESULT
+	push	[hwnd]
+	call	[SetDlgItemText]
+	jmp	.done
+      .err:
+	push	MB_OK+MB_ICONINFORMATION+MB_SETFOREGROUND
+	push	_title
+	push	ecx
+	push	[hwnd]
+	call	[MessageBox]
+	jmp	.done
+    .wm_close:
+	push	0
+	push	[hwnd]
+	call	[EndDialog]
+    .done:
+	mov	eax,1
+    .fin:
+	ret
+endp
+
+decompile:
+	push	ebx esi edi
 	std
 	or	ecx,-1
 	mov	al,'\'
@@ -292,7 +470,15 @@ proc DialogProc hwnd,msg,wparam,lparam
 	push	path
 	call	[SetCurrentDirectory]
 	mov	byte [edi+1],'\'
-	pop	edi
+	sub	esp,4
+	push	esp
+	push	path
+	call	[GetBinaryType]
+	mov	eax,[esp]
+	add	esp,4
+	mov	ecx,NO_32BIT
+	cmp	eax,SCS_32BIT_BINARY
+	jnz	.fin
 	mov	[_si.cb],sizeof.STARTUPINFO
 	xor	eax,eax
 	push	_pi
@@ -306,8 +492,9 @@ proc DialogProc hwnd,msg,wparam,lparam
 	push	path
 	push	eax
 	call	[CreateProcess]
+	mov	ecx,NO_PROCESS
 	test	eax,eax
-	je	.err
+	je	.fin
 	push	pathdll
 	push	256
 	call	[GetTempPath]
@@ -337,7 +524,7 @@ proc DialogProc hwnd,msg,wparam,lparam
 	push	[_pi.dwProcessId]
 	call	InjectDll
 	test	eax,eax
-	je	.failed
+	je	.err
 	push	[_pi.hThread]
 	call	[ResumeThread]
 	push	-1
@@ -365,17 +552,15 @@ proc DialogProc hwnd,msg,wparam,lparam
 	repnz	scasb
 	cld
 	lea	eax,[edi+1]
-	je	.found
-	mov	eax,esi
-      .found:
+	cmovnz	eax,esi
 	mov	dword [eax],'_.au'
 	mov	word [eax+4],'3'
 	push	OF_READ
 	push	path
 	call	[_lopen]
-	mov	edx,_output
+	mov	ecx,NO_OUTPUT
 	test	eax,eax
-	js	.output
+	js	.fin
 	mov	esi,eax
 	push	2
 	push	0
@@ -401,31 +586,10 @@ proc DialogProc hwnd,msg,wparam,lparam
 	call	[_lread]
 	push	esi
 	call	[_lclose]
-	push	edi
-	push	IDC_RESULT
-	push	[hwnd]
-	call	[SetDlgItemText]
-	call	[GetProcessHeap]
-	push	edi
-	push	0
-	push	eax
-	call	[HeapFree]
-	push	0
-	call	[GetModuleHandle]
-	push	0
-	push	16
-	push	16
-	push	IMAGE_ICON
-	push	IDI_ICON1
-	push	eax
-	call	[LoadImage]
-	push	eax
-	push	0
-	push	WM_SETICON
-	push	[hwnd]
-	call	[SendMessage]
-	jmp	.done
-      .failed:
+	xor	ecx,ecx
+	mov	edx,edi
+	jmp	.fin
+    .err:
 	push	0
 	push	[_pi.hProcess]
 	call	[TerminateProcess]
@@ -433,43 +597,12 @@ proc DialogProc hwnd,msg,wparam,lparam
 	call	[CloseHandle]
 	push	[_pi.hThread]
 	call	[CloseHandle]
-	mov	edx,_failed
-      .output:
-	push	edx
-	push	0
-	call	[GetModuleHandle]
-	push	0
-	push	16
-	push	16
-	push	IMAGE_ICON
-	push	IDI_ICON2
-	push	eax
-	call	[LoadImage]
-	push	eax
-	push	0
-	push	WM_SETICON
-	push	[hwnd]
-	call	[SendMessage]
-	push	IDC_RESULT
-	push	[hwnd]
-	call	[SetDlgItemText]
-	jmp	.done
-      .err:
-	push	MB_OK+MB_ICONINFORMATION+MB_SETFOREGROUND
-	push	_title
-	push	_error
-	push	[hwnd]
-	call	[MessageBox]
-	jmp	.done
-    .wm_close:
-	push	0
-	push	[hwnd]
-	call	[EndDialog]
-    .done:
-	mov	eax,1
+	mov	ecx,NO_INJECTION
+	xor	edx,edx
     .fin:
-	ret
-endp
+	xchg	eax,ecx
+	pop	edi esi ebx
+	retn
 
 proc LoadResfile name,type,size
 	push	edi
@@ -585,11 +718,20 @@ section '.data' data readable writeable
   VERSION equ 'Exe2Autv4'
   WINDOW_TITLE equ 'Exe2Aut - AutoIt3 Decompiler'
 
+  NO_32BIT     = 1
+  NO_PROCESS   = 2
+  NO_INJECTION = 3
+  NO_OUTPUT    = 4
+
   _courier db 'Courier New',0
   _output db 'Apparently, it didn''t work..',0
   _failed db 'Something went wrong..',0
   _title db 'Exe2Aut',0
+  _32bit db 'Only 32bit PE files are supported!',0
   _error db 'Either it''s not a PE file or it''s corrupted!',0
+  _nopath db 'No file specified!',0
+  _notfound db 'File not found!',0
+  _done db 'Done.',0
   _mutex db VERSION,0
   _already db 'I''m already running!',0
   _window db WINDOW_TITLE,0
@@ -602,6 +744,8 @@ section '.data' data readable writeable
   _adjust db 'Adjust FileInstall and @Compiled',0
   _adjswitch du '-adjust',0
   _adjmutex db VERSION,':Adjust',0
+  _nogui du '-nogui',0
+  _quiet du '-quiet',0
 
   path rb 256
   pathdll rb 256
@@ -612,7 +756,11 @@ section '.data' data readable writeable
   armmutex rd 1
   renmutex rd 1
   adjmutex rd 1
+  no_gui rb 1
+  be_quiet rb 1
   argc rd 1
+
+  mp MSGBOXPARAMS
 
 section '.idata' import data readable
 
