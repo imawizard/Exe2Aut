@@ -30,6 +30,10 @@ section '.code' code readable executable
 	push	dword [esi]
 	call	[lstrcmpiW]
 	je	.armadillo
+	push	_renswitch
+	push	dword [esi]
+	call	[lstrcmpiW]
+	je	.rename
 	jmp	.next
       .armadillo:
 	push	_armmutex
@@ -37,6 +41,13 @@ section '.code' code readable executable
 	push	0
 	call	[CreateMutex]
 	mov	[armmutex],eax
+	jmp	.next
+      .rename:
+	push	_renmutex
+	push	0
+	push	0
+	call	[CreateMutex]
+	mov	[renmutex],eax
     .next:
 	add	esi,4
 	dec	ebx
@@ -104,6 +115,16 @@ proc DialogProc hwnd,msg,wparam,lparam
 	push	eax
 	push	ebx
 	call	[AppendMenu]
+	mov	eax,MF_STRING
+	cmp	[renmutex],0
+	je	.append_ren
+	or	eax,MF_CHECKED
+      .append_ren:
+	push	_rename
+	push	IDM_RENAME
+	push	eax
+	push	ebx
+	call	[AppendMenu]
 	push	0
 	call	[GetModuleHandle]
 	push	0
@@ -139,12 +160,21 @@ proc DialogProc hwnd,msg,wparam,lparam
 	xor	eax,eax
 	cmp	[wparam],IDM_ARMDB
 	je	.armadillo
+	cmp	[wparam],IDM_RENAME
+	je	.rename
 	jmp	.fin
       .armadillo:
 	push	ebx esi edi
 	mov	ebx,IDM_ARMDB
 	mov	esi,_armmutex
 	mov	edi,armmutex
+	jmp	.sysmenu
+      .rename:
+	push	ebx esi edi
+	mov	ebx,IDM_RENAME
+	mov	esi,_renmutex
+	mov	edi,renmutex
+      .sysmenu:
 	push	0
 	push	[hwnd]
 	call	[GetSystemMenu]
@@ -532,6 +562,9 @@ section '.data' data readable writeable
   _armadillo db 'Armadillo''s Debug-Blocker',0
   _armswitch du '-armadillo',0
   _armmutex db 'Exe2Autv3:Armadillo',0
+  _rename db 'Give all Symbols ''default'' Names',0
+  _renswitch du '-rename',0
+  _renmutex db 'Exe2Autv3:Rename',0
 
   path rb 256
   pathdll rb 256
@@ -540,6 +573,7 @@ section '.data' data readable writeable
   _si STARTUPINFO
 
   armmutex rd 1
+  renmutex rd 1
   argc rd 1
   font rd 1
 
@@ -570,6 +604,7 @@ section '.rsrc' resource data readable
   IDD_MAIN   = 100
   IDC_RESULT = 101
   IDM_ARMDB  = 102
+  IDM_RENAME = 103
 
   directory RT_ICON,icons,\
 	    RT_GROUP_ICON,group_icons,\

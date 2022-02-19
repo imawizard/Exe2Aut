@@ -604,9 +604,11 @@ _KF db 'False',0,\
        'For',0
 _Func db \
        'Func',0,0
+label _Global
 _KG db 'Global',0,0
 _KI db 'If',0,\
        'In',0,0
+label _Local
 _KL db 'Local',0,0
 _KN db 'Next',0,\
        'NOT',0,0
