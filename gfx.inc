@@ -265,12 +265,21 @@ proc GFX_UPDATE
 	push	[GFX_TextColor]
 	push	[GFX_hDC]
 	call	[SetTextColor]
+	sub	[GFX_Rect.bottom],15
 	push	DT_CENTER+DT_VCENTER+DT_SINGLELINE
 	push	GFX_Rect
 	push	lamelen
 	push	_lame
 	push	[GFX_hDC]
 	call	[DrawText]
+	add	[GFX_Rect.bottom],30
+	push	DT_CENTER+DT_VCENTER+DT_SINGLELINE
+	push	GFX_Rect
+	push	excuselen
+	push	_excuse
+	push	[GFX_hDC]
+	call	[DrawText]
+	sub	[GFX_Rect.bottom],15
       .notext:
 	mov	[GFX_Min],MIN_INIT
     .fin:
@@ -304,6 +313,8 @@ macro gfx_idata
   _terminal db 'Terminal',0
   _lame db 'wow, this looks so lame'
   lamelen = $-_lame
+  _excuse db '1st time GDI, though :]'
+  excuselen = $-_excuse
 
   GFX_Spiked db 14 dup (2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,4,6,8,10,10,10,10,10,10,10,10,8,6,4)
 

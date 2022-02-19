@@ -82,6 +82,8 @@ _keywords dd _KA,\
 
 _FA db 'Abs',0,\
        'ACos',0,\
+       'AdlibEnable',0,\
+       'AdlibDisable',0,\
        'AdlibRegister',0,\
        'AdlibUnRegister',0,\
        'Asc',0,\
@@ -323,6 +325,7 @@ _FM db 'MemGetStats',0,\
        'MsgBox',0,0
 _FN db 'Number',0,0
 _FO db 'ObjCreate',0,\
+       'ObjCreateInterface',0,\
        'ObjEvent',0,\
        'ObjGet',0,\
        'ObjName',0,\
@@ -355,6 +358,7 @@ _FR db 'Random',0,\
        'Round',0,\
        'Run',0,\
        'RunAs',0,\
+       'RunAsSet',0,\
        'RunAsWait',0,\
        'RunWait',0,0
 _FS db 'Send',0,\
@@ -655,9 +659,9 @@ _preprocessor db '#comments-start',0,\
 		 '#AutoIt3Wrapper_Aut2exe',0,\
 		 '#AutoIt3Wrapper_AutoIt3',0,\
 		 '#AutoIt3Wrapper_Icon',0,\
-		 '#AutoIt3Wrapper_OutFile',0,\
 		 '#AutoIt3Wrapper_OutFile_Type',0,\
 		 '#AutoIt3Wrapper_OutFile_X64',0,\
+		 '#AutoIt3Wrapper_OutFile',0,\
 		 '#AutoIt3Wrapper_Compression',0,\
 		 '#AutoIt3Wrapper_UseUpx',0,\
 		 '#AutoIt3Wrapper_UPX_Parameters',0,\

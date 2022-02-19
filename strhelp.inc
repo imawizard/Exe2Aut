@@ -999,13 +999,14 @@ proc strscan dest,src,fmt
     .err:
 	mov	edi,[dest]
     .fin:
+	mov	ecx,1
 	cmp	[dest],0
-	je	.posonly
+	je	.fmtcheck
 	mov	byte [edi],0
 	mov	ecx,edi
 	mov	edx,edi
 	sub	ecx,[dest]
-    .posonly:
+    .fmtcheck:
 	mov	eax,esi
 	sub	edx,ecx
 	pop	edi esi ebx

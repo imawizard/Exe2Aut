@@ -173,7 +173,7 @@ endp
 	call	[CreateMutex]
 	retn	4
 
-  infiltrate:
+  hook_critical_part:
 	push	eax
 	push	_armadillo
 	call	IsMutex
@@ -329,7 +329,7 @@ endp
 	add	eax,_count_3_2_8_0
     .fin:
 	mov	[modrm],cl
-	call	infiltrate
+	call	hook_critical_part
 	cmp	[file_err],1
 	je	.done
 	mov	eax,[esp+8]
@@ -362,7 +362,7 @@ endp
 	push	_size_extract
 	push	_mask_extract
 	push	_ptrn_extract
-	push	3D000h
+	push	40000h
 	push	eax
 	call	FindPattern
 	jmp	.finally
@@ -441,7 +441,7 @@ endp
 	add	eax,_count_3_2_8_0
     .fin:
 	mov	[modrm],cl
-	call	infiltrate
+	call	hook_critical_part
 	cmp	[file_err],1
 	je	.done
 	mov	eax,[esp+8]
@@ -765,7 +765,7 @@ endp
 	mov	[dummy],0
 	jmp	.empty
       .decrypt:
-	xor	word [eax],bx
+	xor	[eax],bx
 	add	eax,2
 	loop	.decrypt
 	push	esi edi
@@ -776,8 +776,8 @@ endp
 	lodsw
 	stosb
 	loop	.copy
+	mov	[edi],cl
 	pop	edi esi
-	mov	[dummy+ebx],cl
 	cmp	[file_mod],1
 	jnz	.empty
 	call	extract_file
@@ -786,10 +786,13 @@ endp
 	mov	al,[esi-1]
 	cmp	al,36h
 	je	.string
+	cmp	al,37h
+	je	.nolower
 	push	eax
 	push	dummy
 	call	[CharLower]
 	pop	eax
+      .nolower:
 	call	capitalize
 	cmp	al,30h
 	je	.keyword

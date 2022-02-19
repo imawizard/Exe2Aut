@@ -15,7 +15,6 @@ ends
 
 FindPattern:
 	push	ebx esi edi
-	cld
 	mov	edi,[esp+10h]
 	mov	ecx,[esp+14h]
 	mov	edx,[esp+1Ch]
@@ -85,13 +84,13 @@ RFindPattern:
 	je	.compare
     .no_match:
 	pop	edi
-	sub	edi,2
 	xchg	ebx,ecx
+	sub	edi,2
 	jmp	.loop
     .not_found:
 	xor	eax,eax
-    .fin:
 	cld
+    .fin:
 	pop	edi esi ebx
 	retn	14h
 
@@ -132,13 +131,13 @@ MakeDir:
 
 proc alloc_base address
   local mbi:MEMORY_BASIC_INFORMATION
-     lea	eax,[mbi]
-     push	sizeof.MEMORY_BASIC_INFORMATION
-     push	eax
-     push	[address]
-     call	[VirtualQuery]
-     mov	eax,[mbi.AllocationBase]
-     ret
+	lea	eax,[mbi]
+	push	sizeof.MEMORY_BASIC_INFORMATION
+	push	eax
+	push	[address]
+	call	[VirtualQuery]
+	mov	eax,[mbi.AllocationBase]
+	ret
 endp
 
 proc DetourFunc address,gateway,size
