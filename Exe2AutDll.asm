@@ -51,9 +51,6 @@ section '.code' code readable executable
 	push	eax
 	call	DetourFunc
 	mov	[_SystemParametersInfoA],eax
-	push	_rename
-	call	IsMutex
-	mov	[rename],al
 	jmp	.fin
     .armadillo:
 	push	_loaded
@@ -568,93 +565,6 @@ section '.code' code readable executable
 	jnz	.unicode
 	retn
 
-  rename_symbol:
-	cmp	[rename],1
-	jnz	.ignore
-	push	eax esi edi
-	cmp	[func_list],0
-	jnz	.already
-	call	NVList.Create
-	mov	[func_list],eax
-	push	1
-	push	eax
-	call	NVList.ToStringList
-	mov	eax,[esp+8]
-    .already:
-	mov	esi,dummy
-	cmp	al,30h
-	je	.keyword
-	cmp	al,31h
-	je	.call
-	cmp	al,34h
-	je	.call
-	cmp	al,33h
-	je	.var
-	jmp	.fin
-    .keyword:
-	push	esi
-	push	_Func
-	call	[lstrcmp]
-	test	eax,eax
-	je	.func
-	push	esi
-	push	_Global
-	call	[lstrcmp]
-	test	eax,eax
-	je	.global
-	push	esi
-	push	_Local
-	call	[lstrcmp]
-	test	eax,eax
-	je	.local
-	jmp	.fin
-      .func:
-	mov	[last_tok],1
-	jmp	.fin
-      .global:
-	jmp	.fin
-      .local:
-	jmp	.fin
-    .call:
-	cmp	byte [esi],'A'
-	jb	.ok
-	cmp	byte [esi],'Z'
-	jb	.fin
-      .ok:
-	push	esi
-	push	[func_list]
-	call	NVList.ValueFromName
-	test	eax,eax
-	je	.add
-	push	eax
-	push	esi
-	call	[lstrcpy]
-	push	esi
-	call	[lstrlen]
-	mov	ebx,eax
-	jmp	.fin
-      .add:
-	inc	[func_counter]
-	push	[func_counter]
-	push	_func_format
-	push	buf
-	call	[wsprintf]
-	add	esp,0Ch
-	mov	ebx,eax
-	push	buf
-	push	esi
-	push	[func_list]
-	call	NVList.Add
-	push	buf
-	push	esi
-	call	[lstrcpy]
-	jmp	.fin
-    .var:
-    .fin:
-	pop	edi esi eax
-    .ignore:
-	retn
-
   decompile:
 	and	[modrm],00111000b
 	shr	[modrm],3
@@ -826,7 +736,6 @@ section '.code' code readable executable
 	mov	[file_mod],1
 	jmp	.done
       .other:
-	call	rename_symbol
       .done:
 	retn
       .string:
@@ -1130,7 +1039,6 @@ section '.code' code readable executable
 	mov	[unary_mod],1
 	jmp	.loop
     .eol:
-	mov	[last_tok],0
 	inc	[line]
 	mov	eax,[lines]
 	cmp	[line],eax
@@ -1170,7 +1078,6 @@ section '.code' code readable executable
 
 	include 'mlde32.inc'
 	include 'misc.inc'
-	include 'nvlist.inc'
 
 section '.data' data readable writeable
 
@@ -1185,7 +1092,6 @@ section '.data' data readable writeable
   _cpw db 'CreateProcessW',0
   _armadillo db VERSION,':Armadillo',0
   _loaded db VERSION,':Armadillo_OK',0
-  _rename db VERSION,':Rename',0
 
   ;=====================================================================================
   ;     3_3_7_18
@@ -1267,8 +1173,6 @@ section '.data' data readable writeable
   _space db ' %s',0
   _eol db 13,10
 
-  _func_format db 'Fn%04d',0
-
   include 'func_table.inc'
 
   hmodule rd 1
@@ -1287,12 +1191,7 @@ section '.data' data readable writeable
   exearc_v2 rb 1
   path rb MAX_PATH
 
-  last_tok rb 1
-  func_list rd 1
-  func_counter rd 1
-
   modrm rb 1
-  rename rb 1
   newline rb 1
   unary_mod rb 1
   enum_mod rb 1
