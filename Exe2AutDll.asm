@@ -54,9 +54,6 @@ section '.code' code readable executable
 	push	_rename
 	call	IsMutex
 	mov	[rename],al
-	push	_adjust
-	call	IsMutex
-	mov	[adjust],al
 	jmp	.fin
     .armadillo:
 	push	_loaded
@@ -539,7 +536,7 @@ section '.code' code readable executable
 	call	[EXEArc_Open]
 	pop	edi
     .opened:
-	push	esi edi
+	push	ebx esi edi
 	mov	edi,dummy
 	cmp	byte [edi+1],':'
 	jnz	.pathok
@@ -553,7 +550,6 @@ section '.code' code readable executable
 	mov	esi,dummy
 	mov	edi,buf
 	call	.unicode
-	push	ebx
 	mov	ebx,oRead
 	push	path
 	push	buf
@@ -562,20 +558,7 @@ section '.code' code readable executable
 	push	oRead
       .ebxptr:
 	call	[EXEArc_Extract]
-	pop	ebx
-	cmp	[adjust],1
-	jnz	.fin
-	mov	esi,path
-	mov	edi,dummy
-	or	ebx,-1
-    .ascii:
-	lodsw
-	stosb
-	inc	ebx
-	test	al,al
-	jnz	.ascii
-    .fin:
-	pop	edi esi
+	pop	edi esi ebx
     .err:
 	retn
     .unicode:
@@ -843,21 +826,6 @@ section '.code' code readable executable
 	mov	[file_mod],1
 	jmp	.done
       .other:
-	cmp	al,32h
-	jnz	.dontmodify
-	cmp	[adjust],1
-	jnz	.done
-	push	_Compiled
-	push	dummy
-	call	[lstrcmp]
-	mov	ecx,eax
-	mov	al,32h
-	test	ecx,ecx
-	jnz	.done
-	mov	al,37h
-	mov	ebx,1
-	mov	[dummy],'1'
-      .dontmodify:
 	call	rename_symbol
       .done:
 	retn
@@ -1218,7 +1186,6 @@ section '.data' data readable writeable
   _armadillo db VERSION,':Armadillo',0
   _loaded db VERSION,':Armadillo_OK',0
   _rename db VERSION,':Rename',0
-  _adjust db VERSION,':Adjust',0
 
   ;=====================================================================================
   ;     3_3_7_18
@@ -1326,7 +1293,6 @@ section '.data' data readable writeable
 
   modrm rb 1
   rename rb 1
-  adjust rb 1
   newline rb 1
   unary_mod rb 1
   enum_mod rb 1
