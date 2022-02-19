@@ -402,7 +402,8 @@ section '.code' code readable executable
 	push	edx
 	push	dummy
 	push	buf
-	call	[lstrcpy]
+	call	[strcpy]
+	add	esp,8
 	xor	esi,esi
 	mov	ecx,dummy
 	mov	edx,buf
@@ -433,18 +434,18 @@ section '.code' code readable executable
 
   capitalize:
 	cmp	al,33h
-	je	.ignore
+	je	.err
 	cmp	al,35h
-	je	.ignore
+	je	.err
 	cmp	al,36h
-	je	.ignore
+	je	.err
 	cmp	al,37h
 	je	.prepr
 	movzx	ecx,[dummy]
 	cmp	ecx,'a'
-	jb	.ignore
+	jb	.err
 	cmp	ecx,'z'
-	ja	.ignore
+	ja	.err
 	sub	ecx,'a'
 	mov	edx,[_macros+ecx*4]
 	cmp	al,32h
@@ -455,74 +456,58 @@ section '.code' code readable executable
 	mov	edx,[_funcs+ecx*4]
     .start:
 	test	edx,edx
-	je	.ignore
+	je	.err
 	push	eax esi edi
-    .join:
 	mov	esi,dummy
 	mov	edi,edx
     .loop:
 	push	edi
 	push	esi
-	call	[lstrcmpi]
+	call	[stricmp]
+	add	esp,8
+	test	eax,eax
 	je	.equal
 	push	edi
-	call	[lstrlen]
+	call	[strlen]
+	add	esp,4
 	lea	edi,[edi+eax+1]
 	cmp	byte [edi],0
 	je	.fin
 	jmp	.loop
     .prepr:
 	push	eax esi edi
-	mov	edx,_preprocessor
-	xor	eax,eax
-	mov	edi,dummy
-	mov	al,7
-	mov	cl,2
-	cmp	byte [edi+eax],' '
-	je	.region
-	mov	al,10
-	mov	cl,3
-	cmp	byte [edi+eax],' '
-	je	.region
-	mov	ecx,ebx
-	mov	eax,'='
-	repnz	scasb
-	jnz	.join
-	mov	[edi-1],ah
-	mov	[dummy+ebx+1],1
-	jmp	.join
-    .region:
-	mov	[edi+eax],ah
-	mov	[edi+ebx+1],cl
-	jmp	.join
+	mov	esi,dummy
+	mov	edi,_preprocessor
+    .loop2:
+	push	edi
+	call	[strlen]
+	mov	[esp],eax
+	push	edi
+	push	esi
+	call	[strnicmp]
+	add	esp,8
+	pop	ecx
+	test	eax,eax
+	je	.equal2
+	lea	edi,[edi+ecx+1]
+	cmp	byte [edi],0
+	je	.fin
+	jmp	.loop2
     .equal:
 	push	edi
 	push	esi
-	call	[lstrcpy]
+	call	[strcpy]
+	add	esp,8
+	jmp	.fin
+    .equal2:
+	push	ecx
+	push	edi
+	push	esi
+	call	[strncpy]
+	add	esp,0Ch
     .fin:
 	pop	edi esi eax
-	xor	ecx,ecx
-	mov	edx,dummy
-	cmp	al,37h
-	jnz	.ignore
-	mov	dl,[edx+ebx+1]
-	mov	cl,7
-	cmp	dl,2
-	je	.space
-	mov	cl,10
-	cmp	dl,3
-	je	.space
-	cmp	dl,1
-	jnz	.ignore
-	push	eax
-	push	dummy
-	call	[lstrlen]
-	mov	[dummy+eax],'='
-	pop	eax
-	jmp	.ignore
-    .space:
-	mov	[dummy+ecx],' '
-    .ignore:
+    .err:
 	retn
 
   extract_file:
@@ -626,7 +611,7 @@ section '.code' code readable executable
 	push	dword [esi]
 	push	_int32
 	push	buf
-	call	[wsprintf]
+	call	[sprintf]
 	add	esp,0Ch
 	push	eax
 	push	buf
@@ -651,7 +636,7 @@ section '.code' code readable executable
 	push	dword [esi]
 	push	_int64
 	push	buf
-	call	[wsprintf]
+	call	[sprintf]
 	add	esp,10h
 	push	eax
 	push	buf
@@ -676,7 +661,6 @@ section '.code' code readable executable
 	lea	eax,[esi+4]
 	mov	ebx,[esi]
 	mov	ecx,[esi]
-	push	ebx
 	test	ebx,ebx
 	jnz	.decrypt
 	mov	[dummy],0
@@ -701,12 +685,18 @@ section '.code' code readable executable
 	mov	[file_mod],0
       .empty:
 	mov	al,[esi-1]
-	call	.modify
 	cmp	al,36h
 	je	.string
+	push	eax
+	push	dummy
+	call	[CharLower]
+	pop	eax
+	call	capitalize
 	cmp	al,30h
 	je	.keyword
 	mov	[enum_mod],0
+	cmp	al,31h
+	je	.callwp
 	mov	ecx,1
 	mov	edx,_macro
 	cmp	al,32h
@@ -717,39 +707,26 @@ section '.code' code readable executable
 	mov	edx,_prop
 	cmp	al,35h
 	je	.ustr_write
+      .other:
 	push	ebx
 	push	dummy
 	push	edi
 	call	[_lwrite]
 	jmp	.ustr_fin
-      .modify:
-	cmp	al,36h
-	je	.dontmodify
-	push	eax
-	push	dummy
-	call	[CharLower]
-	pop	eax
-	call	capitalize
-	cmp	al,31h
-	jnz	.other
-	push	eax
-	push	_FileInstall
-	push	dummy
-	call	[lstrcmp]
-	mov	ecx,eax
-	pop	eax
-	test	ecx,ecx
-	jnz	.other
-	mov	[file_mod],1
-	jmp	.done
-      .other:
-      .done:
-	retn
       .string:
 	mov	ecx,2
 	mov	edx,_str
 	call	sanitize_string
 	jmp	.ustr_write
+      .callwp:
+	push	dummy
+	push	_FileInstall
+	call	[strcmp]
+	add	esp,8
+	test	eax,eax
+	jnz	.other
+	mov	[file_mod],1
+	jmp	.other
       .keyword:
 	mov	word [dummy+ebx],' '
 	cmp	dword [dummy],'If '
@@ -928,7 +905,6 @@ section '.code' code readable executable
 	push	edi
 	call	[_lwrite]
       .ustr_fin:
-	pop	ebx
 	lea	ebx,[ebx+ebx+4]
     .next:
 	mov	[unary_mod],0
@@ -1071,7 +1047,7 @@ section '.code' code readable executable
 	push	ecx
 	push	_corrupt
 	push	buf
-	call	[wsprintf]
+	call	[sprintf]
 	add	esp,0Ch
 	push	eax
 	push	buf
@@ -1219,10 +1195,15 @@ section '.idata' import data readable
   include 'api\kernel32.inc'
 
   import user32,\
-	 CharLower,'CharLowerA',\
-	 wsprintf,'wsprintfA'
+	 CharLower,'CharLowerA'
 
   import msvcrt,\
-	 sprintf,'sprintf'
+	 sprintf,'sprintf',\
+	 strcmp,'strcmp',\
+	 strcpy,'strcpy',\
+	 strlen,'strlen',\
+	 strncpy,'strncpy',\
+	 stricmp,'_stricmp',\
+	 strnicmp,'_strnicmp'
 
 section '.reloc' fixups data discardable
