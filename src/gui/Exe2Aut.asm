@@ -13,6 +13,9 @@ section '.code' code readable executable
 	push	state
 	call	[strcpy]
 	add	esp,8
+	push	0
+	call	[GetModuleHandle]
+	mov	[hinstance],eax
 	push	_mutex
 	push	0
 	push	0
@@ -96,12 +99,10 @@ section '.code' code readable executable
 	cmp	[no_gui],1
 	je	.hidden
 	push	0
-	call	[GetModuleHandle]
-	push	0
 	push	DialogProc
 	push	0
 	push	IDD_MAIN
-	push	eax
+	push	[hinstance]
 	call	[DialogBoxParam]
     .fin:
 	push	eax
@@ -148,8 +149,7 @@ section '.code' code readable executable
 	call	[HeapFree]
 	cmp	[be_quiet],1
 	je	.fin
-	push	0
-	call	[GetModuleHandle]
+	mov	eax,[hinstance]
 	mov	[mp.cbSize],sizeof.MSGBOXPARAMS
 	mov	[mp.hInstance],eax
 	mov	[mp.lpszText],_done
@@ -198,12 +198,10 @@ proc ShowWarning
 	je	.fin
     .show:
 	push	0
-	call	[GetModuleHandle]
-	push	0
 	push	WarningProc
 	push	0
 	push	IDD_WARNING
-	push	eax
+	push	[hinstance]
 	call	[DialogBoxParam]
     .fin:
 	ret
@@ -256,13 +254,11 @@ proc DialogProc hwnd,msg,wparam,lparam
 	menu_sep
 	menu_item IDM_ABOUT,_about
 	push	0
-	call	[GetModuleHandle]
-	push	0
 	push	16
 	push	16
 	push	IMAGE_ICON
 	push	IDI_ICON2
-	push	eax
+	push	[hinstance]
 	call	[LoadImage]
 	push	eax
 	push	0
@@ -329,23 +325,19 @@ proc DialogProc hwnd,msg,wparam,lparam
 	mov	edi,nfimutex
 	jmp	.sysmenu
       .deobfu:
-	push	0
-	call	[GetModuleHandle]
 	push	[hwnd]
 	push	DeobfuProc
 	push	[hwnd]
 	push	IDD_OPTIONS
-	push	eax
+	push	[hinstance]
 	call	[DialogBoxParam]
 	jmp	.done
       .about:
-	push	0
-	call	[GetModuleHandle]
 	push	[hwnd]
 	push	AboutProc
 	push	[hwnd]
 	push	IDD_ABOUT
-	push	eax
+	push	[hinstance]
 	call	[DialogBoxParam]
 	jmp	.done
       .sysmenu:
@@ -440,13 +432,11 @@ proc DialogProc hwnd,msg,wparam,lparam
 	push	0
 	push	0
 	call	[CreateThread]
-	push	0
-	call	[GetModuleHandle]
 	push	[hwnd]
 	push	ProgressProc
 	push	[hwnd]
 	push	IDD_PROGRESS
-	push	eax
+	push	[hinstance]
 	call	[DialogBoxParam]
 	jmp	.done
     .wm_close:
@@ -481,13 +471,11 @@ proc decompile_thread len
 	push	[main_hwnd]
 	call	[SetDlgItemText]
 	push	0
-	call	[GetModuleHandle]
-	push	0
 	push	16
 	push	16
 	push	IMAGE_ICON
 	push	IDI_ICON1
-	push	eax
+	push	[hinstance]
 	call	[LoadImage]
 	push	eax
 	push	0
@@ -526,13 +514,11 @@ proc decompile_thread len
     .didntwork:
 	mov	[esp],ecx
 	push	0
-	call	[GetModuleHandle]
-	push	0
 	push	16
 	push	16
 	push	IMAGE_ICON
 	push	IDI_ICON2
-	push	eax
+	push	[hinstance]
 	call	[LoadImage]
 	push	eax
 	push	0
@@ -1130,13 +1116,11 @@ proc WarningProc hwnd,msg,wparam,lparam
 	jmp	.fin
     .wm_initdialog:
 	push	0
-	call	[GetModuleHandle]
-	push	0
 	push	16
 	push	16
 	push	IMAGE_ICON
 	push	IDI_ICON3
-	push	eax
+	push	[hinstance]
 	call	[LoadImage]
 	push	eax
 	push	0
@@ -1222,13 +1206,11 @@ proc CrashProc hwnd,msg,wparam,lparam
     .wm_initdialog:
 	push	edi
 	push	0
-	call	[GetModuleHandle]
-	push	0
 	push	16
 	push	16
 	push	IMAGE_ICON
 	push	IDI_ICON2
-	push	eax
+	push	[hinstance]
 	call	[LoadImage]
 	push	eax
 	push	0
@@ -1360,13 +1342,11 @@ proc ExceptionFilter ExceptionInfo
 	push	[main_hwnd]
 	call	[ShowWindow]
     .no_main_hwnd:
-	push	0
-	call	[GetModuleHandle]
 	push	[ExceptionInfo]
 	push	CrashProc
 	push	0
 	push	IDD_CRASH
-	push	eax
+	push	[hinstance]
 	call	[DialogBoxParam]
 	mov	eax,1
 	ret
@@ -1447,6 +1427,7 @@ section '.data' data readable writeable
   deobfus_idata
   gfx_idata
 
+  hinstance rd 1
   state rb 10h
 
   path rb 256
