@@ -1323,8 +1323,8 @@ set_status:
 
 section '.data' data readable writeable
 
-  VERSION      equ 'Exe2Autv7'
-  VERSION_NUM  equ '7'
+  VERSION      equ 'Exe2Autv8beta'
+  VERSION_NUM  equ '8'
   WINDOW_TITLE equ 'Exe2Aut - AutoIt3 Decompiler'
 
   NO_3264BIT   = 1
