@@ -1583,7 +1583,6 @@ set_status:
 	retn	4
 
 	include '../x86/misc.inc'
-	include 'gfx.inc'
 	include 'PluginManager.inc'
 	include 'Settings.inc'
 
@@ -1771,6 +1770,7 @@ section '.rsrc' resource data readable
   IDI_HAPPY	      = 2
   IDI_UNHAPPY	      = 3
   IDI_WARNING	      = 4
+  IDI_ABOUT	      = 5
   IDI_HI2U	      = 6
   IDI_HI2U_END	      = IDI_HI2U+HI2U_COUNT
 
@@ -1819,7 +1819,7 @@ section '.rsrc' resource data readable
 	    RT_VERSION,versions
 
   HI2U_ICONS equ
-  rept HI2U_N i:6,n
+  rept HI2U_COUNT i:7,n
    { match any,HI2U_ICONS \{ HI2U_ICONS equ HI2U_ICONS,i,LANG_ENGLISH+SUBLANG_DEFAULT,hi2u_data#n \}
      match ,HI2U_ICONS \{ HI2U_ICONS equ i,LANG_ENGLISH+SUBLANG_DEFAULT,hi2u_data#n \} }
 
@@ -1830,6 +1830,7 @@ section '.rsrc' resource data readable
 	   3,LANG_ENGLISH+SUBLANG_DEFAULT,icon_data3,\
 	   4,LANG_ENGLISH+SUBLANG_DEFAULT,icon_data4,\
 	   5,LANG_ENGLISH+SUBLANG_DEFAULT,icon_data5,\
+	   6,LANG_ENGLISH+SUBLANG_DEFAULT,icon_data6,\
 	   HI2U_ICONS,\
 	   IDR_DLL,LANG_ENGLISH+SUBLANG_DEFAULT,exe2autdll,\
 	   IDR_DLL64,LANG_ENGLISH+SUBLANG_DEFAULT,exe2autdll64,\
@@ -1837,7 +1838,7 @@ section '.rsrc' resource data readable
   HI2U_ICONS_END
 
   HI2U_GROUP equ
-  rept HI2U_N i:0,n
+  rept HI2U_COUNT i:0,n
    { match any,HI2U_GROUP \{ HI2U_GROUP equ HI2U_GROUP,IDI_HI2U+i,LANG_ENGLISH+SUBLANG_DEFAULT,hi2u_icon#n \}
      match ,HI2U_GROUP \{ HI2U_GROUP equ IDI_HI2U+i,LANG_ENGLISH+SUBLANG_DEFAULT,hi2u_icon#n \} }
 
@@ -1847,6 +1848,7 @@ section '.rsrc' resource data readable
 	   IDI_LAUGHING,LANG_ENGLISH+SUBLANG_DEFAULT,laughing_icon,\
 	   IDI_NEUTRAL,LANG_ENGLISH+SUBLANG_DEFAULT,neutral_icon,\
 	   IDI_WARNING,LANG_ENGLISH+SUBLANG_DEFAULT,warn_icon,\
+	   IDI_ABOUT,LANG_ENGLISH+SUBLANG_DEFAULT,about_icon,\
 	   HI2U_GROUP
   HI2U_GROUP_END
 
@@ -1872,7 +1874,8 @@ section '.rsrc' resource data readable
   icon laughing_icon,icon_data3,RES_PATH#'icon3.ico'
   icon neutral_icon,icon_data4,RES_PATH#'icon4.ico'
   icon warn_icon,icon_data5,RES_PATH#'icon5.ico'
-  rept HI2U_N n
+  icon about_icon,icon_data6,RES_PATH#'icon6.ico'
+  rept HI2U_COUNT n
   \{ icon hi2u_icon\#n,hi2u_data\#n,RES_PATH#'hi2u/'\#\`n\#'.ico' \}
 
   resdata exe2autdll
