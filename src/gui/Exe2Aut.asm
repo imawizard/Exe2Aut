@@ -152,7 +152,7 @@ section '.code' code readable executable
 	mov	[mp.lpszText],_done
 	mov	[mp.lpszCaption],_title
 	mov	[mp.dwStyle],MB_OK+MB_SETFOREGROUND+MB_USERICON
-	mov	[mp.lpszIcon],IDI_ICON1
+	mov	[mp.lpszIcon],IDI_MAIN
 	push	mp
 	call	[MessageBoxIndirect]
 	xor	eax,eax
@@ -247,18 +247,7 @@ proc DialogProc hwnd,msg,wparam,lparam
 	menuitem IDM_OPTIONS,_deobfu,,MF_MENUBARBREAK
 	menusep
 	menuitem IDM_ABOUT,_about
-	push	0
-	push	16
-	push	16
-	push	IMAGE_ICON
-	push	IDI_ICON2
-	push	[hinstance]
-	call	[LoadImage]
-	push	eax
-	push	0
-	push	WM_SETICON
-	push	[hwnd]
-	call	[SendMessage]
+	seticon [hwnd],IDI_NEUTRAL
 	push	_courier
 	push	DEFAULT_PITCH+FF_MODERN
 	push	DEFAULT_QUALITY
@@ -464,18 +453,7 @@ proc decompile_thread len
 	push	IDC_RESULT
 	push	[main_hwnd]
 	call	[SetDlgItemText]
-	push	0
-	push	16
-	push	16
-	push	IMAGE_ICON
-	push	IDI_ICON1
-	push	[hinstance]
-	call	[LoadImage]
-	push	eax
-	push	0
-	push	WM_SETICON
-	push	[main_hwnd]
-	call	[SendMessage]
+	seticon [main_hwnd],IDI_MAIN
 	pop	ecx
 	test	ecx,ecx
 	je	.finalize
@@ -507,18 +485,7 @@ proc decompile_thread len
 	jmp	.finalize
     .didntwork:
 	mov	[esp],ecx
-	push	0
-	push	16
-	push	16
-	push	IMAGE_ICON
-	push	IDI_ICON2
-	push	[hinstance]
-	call	[LoadImage]
-	push	eax
-	push	0
-	push	WM_SETICON
-	push	[main_hwnd]
-	call	[SendMessage]
+	seticon [main_hwnd],IDI_NEUTRAL
 	push	IDC_RESULT
 	push	[main_hwnd]
 	call	[SetDlgItemText]
@@ -1101,18 +1068,7 @@ proc WarningProc hwnd,msg,wparam,lparam
 	xor	eax,eax
 	jmp	.fin
     .wm_initdialog:
-	push	0
-	push	16
-	push	16
-	push	IMAGE_ICON
-	push	IDI_ICON3
-	push	[hinstance]
-	call	[LoadImage]
-	push	eax
-	push	0
-	push	WM_SETICON
-	push	[hwnd]
-	call	[SendMessage]
+	seticon [hwnd],IDI_WARNING
 	push	_tahoma
 	push	DEFAULT_PITCH+FF_MODERN
 	push	DEFAULT_QUALITY
@@ -1191,18 +1147,7 @@ proc CrashProc hwnd,msg,wparam,lparam
 	jmp	.fin
     .wm_initdialog:
 	push	edi
-	push	0
-	push	16
-	push	16
-	push	IMAGE_ICON
-	push	IDI_ICON2
-	push	[hinstance]
-	call	[LoadImage]
-	push	eax
-	push	0
-	push	WM_SETICON
-	push	[hwnd]
-	call	[SendMessage]
+	seticon [main_hwnd],IDI_NEUTRAL
 	push	_courier
 	push	DEFAULT_PITCH+FF_MODERN
 	push	DEFAULT_QUALITY
@@ -1495,9 +1440,9 @@ section '.rsrc' resource data readable
   RES_PATH_BEGIN fix match RES_PATH,RES_PATH {
   RES_PATH_END	 fix }
 
-  IDI_ICON1    = 1
-  IDI_ICON2    = 2
-  IDI_ICON3    = 3
+  IDI_MAIN     = 1
+  IDI_NEUTRAL  = 2
+  IDI_WARNING  = 3
   IDR_DLL      = 5
   IDR_DLL64    = 6
   IDR_INJ64    = 7
@@ -1538,9 +1483,9 @@ section '.rsrc' resource data readable
 	   IDR_INJ64,LANG_ENGLISH+SUBLANG_DEFAULT,injectdll64
 
   resource group_icons,\
-	   IDI_ICON1,LANG_ENGLISH+SUBLANG_DEFAULT,main_icon,\
-	   IDI_ICON2,LANG_ENGLISH+SUBLANG_DEFAULT,other_icon,\
-	   IDI_ICON3,LANG_ENGLISH+SUBLANG_DEFAULT,warn_icon
+	   IDI_MAIN,LANG_ENGLISH+SUBLANG_DEFAULT,main_icon,\
+	   IDI_NEUTRAL,LANG_ENGLISH+SUBLANG_DEFAULT,other_icon,\
+	   IDI_WARNING,LANG_ENGLISH+SUBLANG_DEFAULT,warn_icon
 
   resource dialogs,\
 	   IDD_MAIN,LANG_ENGLISH+SUBLANG_DEFAULT,main_dialog,\

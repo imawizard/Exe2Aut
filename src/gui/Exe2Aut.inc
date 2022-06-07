@@ -5,6 +5,22 @@ macro STATUS status
  { push status
    call set_status }
 
+macro seticon hwnd,id
+ { push 0
+   call [GetModuleHandle]
+   push 0
+   push 16
+   push 16
+   push IMAGE_ICON
+   push id
+   push eax
+   call [LoadImage]
+   push eax
+   push 0
+   push WM_SETICON
+   push hwnd
+   call [SendMessage] }
+
 macro menuitem idm,caption,mutex,flags
  { if ~ mutex eq
     xor eax,eax
