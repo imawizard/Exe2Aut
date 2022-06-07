@@ -8,8 +8,8 @@ macro findsig _sig,target
    \{ mov ecx,range
       mov eax,[esp+8]
       cmp [armadillo],1
-      match +,op \\{ cmovnz ecx,[size_delta  ] \\}
-      match -,op \\{ cmovnz ecx,[size_delta+4] \\}
+      match +,op \\{ cmovnz ecx,[ frwrd_range] \\}
+      match -,op \\{ cmovnz ecx,[bckwrd_range] \\}
       push _size_\#sig
       push _mask_\#sig
       push _ptrn_\#sig

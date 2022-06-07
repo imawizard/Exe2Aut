@@ -194,19 +194,19 @@ endp
 	pop	edi esi
 	retn
 
-  get_size_delta:
+  get_frwrd_bckwrd_range:
 	cmp	[armadillo],1
 	je	.fin
 	push	ebx
 	mov	ecx,edx
 	mov	ebx,edx
 	sub	ecx,eax
-	mov	[size_delta+4],ecx
+	mov	[bckwrd_range],ecx
 	push	ebx
 	call	alloc_size
 	sub	ebx,edx
 	sub	eax,ebx
-	mov	[size_delta],eax
+	mov	[frwrd_range],eax
 	pop	ebx
     .fin:
 	retn
@@ -223,7 +223,7 @@ endp
 	cmp	[already],1
 	je	.already
 	mov	edx,[esp]
-	call	get_size_delta
+	call	get_frwrd_bckwrd_range
 	call	filename
 	push	.handler
 	push	dword [fs:0]
@@ -299,7 +299,7 @@ endp
 	push	eax
 	call	alloc_base
 	mov	edx,[esp]
-	call	get_size_delta
+	call	get_frwrd_bckwrd_range
 	call	filename
 	push	.handler
 	push	dword [fs:0]
@@ -1108,7 +1108,8 @@ section '.data' data readable writeable
   include 'func_table.inc'
   include 'signatures.inc'
 
-  size_delta rd 2
+  frwrd_range rd 1
+  bckwrd_range rd 1
 
   hmodule rd 1
   hkernel rd 1
