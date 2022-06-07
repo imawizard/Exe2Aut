@@ -566,8 +566,8 @@ endp
 	cmp	eax,SCS_32BIT_BINARY
 	je	.start
 	inc	edi
-	cmp	eax,SCS_64BIT_BINARY
-	je	.start
+	;cmp     eax,SCS_64BIT_BINARY
+	;je      .start
 	mov	ecx,NO_3264BIT
 	jmp	.fin
     .start:
