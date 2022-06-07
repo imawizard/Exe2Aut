@@ -1585,6 +1585,7 @@ set_status:
 	include '../x86/misc.inc'
 	include 'PluginManager.inc'
 	include 'Settings.inc'
+	include '../../lib/uFMOD/ufmod.inc'
 
 section '.data' data readable writeable
 
@@ -1674,6 +1675,7 @@ section '.data' data readable writeable
   misc_idata
   plman_idata
   sets_idata
+  ufmod_idata
 
   hinstance rd 1
   main_hwnd rd 1
@@ -1711,6 +1713,7 @@ section '.data' data readable writeable
   misc_udata
   plman_udata
   sets_udata
+  ufmod_udata
 
 section '.idata' import data readable
 
@@ -1720,7 +1723,8 @@ section '.idata' import data readable
 	  advapi32,'ADVAPI32.DLL',\
 	  shell32,'SHELL32.DLL',\
 	  msvcrt,'MSVCRT.DLL',\
-	  shlwapi,'SHLWAPI.DLL'
+	  shlwapi,'SHLWAPI.DLL',\
+	  winmm,'WINMM.DLL'
 
   include 'api\kernel32.inc'
   include 'api\user32.inc'
@@ -1746,6 +1750,14 @@ section '.idata' import data readable
 	 PathStripPath,'PathStripPathA',\
 	 SHDeleteKey,'SHDeleteKeyA'
 
+  import winmm,\
+	 waveOutClose,'waveOutClose',\
+	 waveOutGetPosition,'waveOutGetPosition',\
+	 waveOutOpen,'waveOutOpen',\
+	 waveOutPrepareHeader,'waveOutPrepareHeader',\
+	 waveOutReset,'waveOutReset',\
+	 waveOutUnprepareHeader,'waveOutUnprepareHeader',\
+	 waveOutWrite,'waveOutWrite'
 
 section '.edata' export data readable
 
@@ -1893,6 +1905,9 @@ section '.rsrc' resource data readable
   resdata manifest
     file RES_PATH#'manifest.xml'
   endres
+
+  chiptune file RES_PATH#'Linda''s street.xm'
+  sizeof.chiptune = $-chiptune
 
   RES_PATH_END
 
