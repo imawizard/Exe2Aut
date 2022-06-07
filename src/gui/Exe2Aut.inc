@@ -1,6 +1,10 @@
 
 include 'win32a.inc'
 
+macro STATUS status
+ { push status
+   call set_status }
+
 macro menuitem idm,caption,mutex,flags
  { if ~ mutex eq
     xor eax,eax

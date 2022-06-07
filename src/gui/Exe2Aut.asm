@@ -9,10 +9,7 @@ section '.code' code readable executable
   start:
 	push	ExceptionFilter
 	call	[SetUnhandledExceptionFilter]
-	push	_startup
-	push	state
-	call	[strcpy]
-	add	esp,8
+	STATUS	_startup
 	push	0
 	call	[GetModuleHandle]
 	mov	[hinstance],eax
@@ -235,12 +232,9 @@ proc DialogProc hwnd,msg,wparam,lparam
 	xor	eax,eax
 	jmp	.fin
     .wm_initdialog:
+	STATUS	_idling
 	mov	eax,[hwnd]
 	mov	[main_hwnd],eax
-	push	_idle
-	push	state
-	call	[strcpy]
-	add	esp,8
 	push	0
 	push	[hwnd]
 	call	[GetSystemMenu]
@@ -587,10 +581,7 @@ endp
 	mov	ecx,NO_3264BIT
 	jmp	.fin
     .start:
-	push	_decompiling
-	push	state
-	call	[strcpy]
-	add	esp,8
+	STATUS	_decompiling
 	mov	[_si.cb],sizeof.STARTUPINFO
 	xor	eax,eax
 	push	_pi
@@ -837,13 +828,8 @@ endp
 	mov	ecx,NO_INJECTION
 	xor	edx,edx
     .fin:
+	STATUS	_idling
 	xchg	eax,ecx
-	push	eax edx
-	push	_idle
-	push	state
-	call	[strcpy]
-	add	esp,8
-	pop	edx eax
 	pop	edi esi ebx
 	retn
 
@@ -1352,6 +1338,15 @@ proc ExceptionFilter ExceptionInfo
 	ret
 endp
 
+set_status:
+	pushad
+	push	dword [esp+4*9]
+	push	state
+	call	[strcpy]
+	add	esp,8
+	popad
+	retn	4
+
 	include '../x86/misc.inc'
 	include 'deobfuscate.inc'
 	include 'gfx.inc'
@@ -1410,7 +1405,7 @@ section '.data' data readable writeable
 	 db 'ESI = %08Xh  EDI = %08Xh  EIP = %08Xh',13,10
 	 db 'Flags:%08Xh%s(%s)',0
   _startup db 'startup',0
-  _idle db 'idle',0
+  _idling db 'idling',0
   _decompiling db 'decompiling',0
   _deobfuscating db 'deobfuscating',0
   _reg_key db 'SOFTWARE\Exe2Aut',0
