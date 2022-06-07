@@ -207,20 +207,22 @@ proc alloc_size address
 	ret
 endp
 
-proc jmp_size
-	push	eax
-	xchg	eax,edx
-	xor	ecx,ecx
-      .loop:
-	push	edx
-	call	mlde32
-	add	esp,4
+proc get_cb_for_hook
+  local f32s:fde32s
+	push	eax ebx
+	xor	ebx,ebx
+	lea	edx,[f32s]
+	xchg	eax,ecx
+    .loop:
+	call	decode
+	movzx	eax,[edx+fde32s.len]
+	add	ebx,eax
 	add	ecx,eax
-	add	edx,eax
-	cmp	ecx,5
+	cmp	ebx,5
 	jb	.loop
-	pop	eax
-	retn
+	mov	ecx,ebx
+	pop	ebx eax
+	ret
 endp
 
 proc DetourFunc address,gateway,size

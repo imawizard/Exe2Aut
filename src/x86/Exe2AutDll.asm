@@ -61,6 +61,8 @@ section '.code' code readable executable
 	mov	eax,TRUE
 	retn	0Ch
 
+	include 'fde32.inc'
+
   MyCreateProcessW:
 	mov	ecx,10
     .push:
@@ -1069,7 +1071,6 @@ endp
 	push	0
 	call	[ExitProcess]
 
-	include 'mlde32.inc'
 	include 'misc.inc'
 
 section '.data' data readable writeable

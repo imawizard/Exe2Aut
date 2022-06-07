@@ -42,7 +42,7 @@ macro hookapi args
       push api
       push eax
       call [GetProcAddress]
-      call jmp_size
+      call get_cb_for_hook
       push ecx
       push func
       push eax
@@ -52,7 +52,7 @@ macro hookapi args
    \{ push api
       push mod
       call [GetProcAddress]
-      call jmp_size
+      call get_cb_for_hook
       push ecx
       push func
       push eax
