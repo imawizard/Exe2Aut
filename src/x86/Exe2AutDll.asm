@@ -61,7 +61,7 @@ section '.code' code readable executable
 	mov	eax,TRUE
 	retn	0Ch
 
-	include 'fde32.inc'
+	include '../../lib/fde32.inc'
 
   MyCreateProcessW:
 	mov	ecx,10
