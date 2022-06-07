@@ -1,7 +1,7 @@
 
 include 'win32a.inc'
 
-macro menu_item idm,caption,mutex,flags
+macro menuitem idm,caption,mutex,flags
  { if ~ mutex eq
     xor eax,eax
     cmp [mutex],0
@@ -24,14 +24,14 @@ macro menu_item idm,caption,mutex,flags
    push ebx
    call [AppendMenu] }
 
-macro menu_sep
+macro menusep
  { push 0
    push 0
    push MF_SEPARATOR
    push ebx
    call [AppendMenu] }
 
-macro on_arg src,to_cmp,goto,count
+macro onarg src,to_cmp,goto,count
  { if count eq
     push to_cmp
     push src

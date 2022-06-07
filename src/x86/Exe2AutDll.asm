@@ -53,7 +53,7 @@ section '.code' code readable executable
 	push	0
 	push	0
 	push	0
-	push	recvaddr
+	push	readaddr
 	push	0
 	push	0
 	call	[CreateThread]
@@ -109,7 +109,7 @@ proc MyReadProcessMemory hProcess,lpBaseAddress,lpBuffer,nSize,lpNumberOfBytesRe
 	ret
 endp
 
-  recvaddr:
+  readaddr:
 	push	100
 	call	[Sleep]
 	push	_address
@@ -117,7 +117,7 @@ endp
 	push	SEMAPHORE_ALL_ACCESS
 	call	[OpenSemaphore]
 	test	eax,eax
-	je	recvaddr
+	je	readaddr
 	push	address
 	push	1
 	push	eax
@@ -1117,7 +1117,7 @@ section '.data' data readable writeable
   _ReadProcessMemory rd 1
   already rb 1
 
-  armadillo rd 1
+  armadillo rb 1
   process rd 1
   address rd 1
 

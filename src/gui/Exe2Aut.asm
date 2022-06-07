@@ -23,7 +23,6 @@ section '.code' code readable executable
 	call	[GetLastError]
 	cmp	eax,ERROR_ALREADY_EXISTS
 	je	.err
-	call	ShowWarning
 	call	[GetCommandLineW]
 	push	argc
 	push	eax
@@ -36,18 +35,18 @@ section '.code' code readable executable
 	dec	ebx
     .argv:
 	mov	edi,[esi]
-	on_arg	dword [esi],_armswitch,.armadillo
-	on_arg	dword [esi],_nfiswitch,.nofiles
-	on_arg	dword [esi],_nogui,.nogui
-	on_arg	dword [esi],_quiet,.quiet
+	onarg	dword [esi],_armswitch,.armadillo
+	onarg	dword [esi],_nfiswitch,.nofiles
+	onarg	dword [esi],_nogui,.nogui
+	onarg	dword [esi],_quiet,.quiet
 	xor	edi,edi
-	on_arg	dword [esi],_deobfusc,.deobfu_params,2
+	onarg	dword [esi],_deobfusc,.deobfu_params,2
 	inc	edi
-	on_arg	dword [esi],_rename,.deobfu_params,2
+	onarg	dword [esi],_rename,.deobfu_params,2
 	inc	edi
-	on_arg	dword [esi],_fileinst,.deobfu_params,2
+	onarg	dword [esi],_fileinst,.deobfu_params,2
 	inc	edi
-	on_arg	dword [esi],_compiled,.deobfu_params,2
+	onarg	dword [esi],_compiled,.deobfu_params,2
 	push	esi
 	mov	esi,[esi]
 	mov	edi,path
@@ -98,6 +97,7 @@ section '.code' code readable executable
 	call	[LocalFree]
 	cmp	[no_gui],1
 	je	.hidden
+	call	ShowWarning
 	push	0
 	push	DialogProc
 	push	0
@@ -245,14 +245,14 @@ proc DialogProc hwnd,msg,wparam,lparam
 	push	[hwnd]
 	call	[GetSystemMenu]
 	mov	ebx,eax
-	menu_sep
-	menu_item 0,_header,,MF_GRAYED
-	menu_item IDM_ARMDB,_armadillo,armmutex
-	menu_sep
-	menu_item IDM_NOFILES,_nofiles,nfimutex
-	menu_item IDM_OPTIONS,_deobfu,,MF_MENUBARBREAK
-	menu_sep
-	menu_item IDM_ABOUT,_about
+	menusep
+	menuitem 0,_header,,MF_GRAYED
+	menuitem IDM_ARMDBGB,_armadillo,armmutex
+	menusep
+	menuitem IDM_NOFILES,_nofiles,nfimutex
+	menuitem IDM_OPTIONS,_deobfu,,MF_MENUBARBREAK
+	menusep
+	menuitem IDM_ABOUT,_about
 	push	0
 	push	16
 	push	16
@@ -303,7 +303,7 @@ proc DialogProc hwnd,msg,wparam,lparam
 	jmp	.done
     .wm_syscommand:
 	xor	eax,eax
-	cmp	[wparam],IDM_ARMDB
+	cmp	[wparam],IDM_ARMDBGB
 	je	.armadillo
 	cmp	[wparam],IDM_NOFILES
 	je	.nofiles
@@ -314,7 +314,7 @@ proc DialogProc hwnd,msg,wparam,lparam
 	jmp	.fin
       .armadillo:
 	push	ebx esi edi
-	mov	ebx,IDM_ARMDB
+	mov	ebx,IDM_ARMDBGB
 	mov	esi,_armmutex
 	mov	edi,armmutex
 	jmp	.sysmenu
@@ -537,7 +537,7 @@ proc decompile_thread len
 	cmp	[armmutex],0
 	je	.fin
 	push	0
-	push	IDM_ARMDB
+	push	IDM_ARMDBGB
 	push	WM_SYSCOMMAND
 	push	[main_hwnd]
 	call	[SendMessage]
@@ -1522,7 +1522,7 @@ section '.rsrc' resource data readable
   IDC_DONTSHOW = 1007
   IDC_CRASH    = 1008
   IDC_EXIT     = 1009
-  IDM_ARMDB    = 2000
+  IDM_ARMDBGB  = 2000
   IDM_NOFILES  = 2001
   IDM_OPTIONS  = 2002
   IDM_ABOUT    = 2003
@@ -1635,6 +1635,6 @@ section '.rsrc' resource data readable
   enddialog
 
   dialog crash_dialog,WINDOW_TITLE,0,0,230,80,WS_POPUP+WS_CAPTION+WS_MINIMIZEBOX+DS_CENTER
-    dialogitem 'edit','',IDC_CRASH,0,0,230,62,WS_VISIBLE+ES_MULTILINE+ES_READONLY
+    dialogitem 'edit','',IDC_CRASH,0,0,230,62,WS_VISIBLE+ES_MULTILINE+ES_READONLY+WS_TABSTOP
     dialogitem 'button','Exit',IDC_EXIT,95,66,40,12,WS_VISIBLE
   enddialog
