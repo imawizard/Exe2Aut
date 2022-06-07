@@ -33,9 +33,9 @@ section '.code' code readable executable
 	push	_nofiles
 	call	IsMutex
 	mov	[file_err],al
-	hookapi [hkernel]:_gclw->MyGetCommandLineW
+	hookapi [hkernel],,_gclw,MyGetCommandLineW
 	mov	[_GetCommandLineW],eax
-	hookapi ~_user32:_spia->MySystemParametersInfoA
+	hookapi ,_user32,_spia,MySystemParametersInfoA
 	mov	[_SystemParametersInfoA],eax
 	jmp	.fin
     .decompile_armadillo:
@@ -46,9 +46,9 @@ section '.code' code readable executable
 	push	0
 	push	0
 	call	[CreateMutex]
-	hookapi ~_kernel32:_cpw->MyCreateProcessW
+	hookapi ,_kernel32,_cpw,MyCreateProcessW
 	mov	[_CreateProcessW],eax
-	hookapi [hkernel]:_rpm->MyReadProcessMemory
+	hookapi [hkernel],,_rpm,MyReadProcessMemory
 	mov	[_ReadProcessMemory],eax
 	push	0
 	push	0
@@ -310,11 +310,11 @@ endp
 	push	.handler
 	push	dword [fs:0]
 	mov	[fs:0],esp
-	findsig +20000h:3_3_0_0
-	findsig +20000h:3_3_7_7
-	findsig -58000h:3_3_7_0
-	findsig -58000h:3_2_10_0
-	findsig -58000h:3_2_8_0
+	findsig +20000h,3_3_0_0
+	findsig +20000h,3_3_7_7
+	findsig -58000h,3_3_7_0
+	findsig -58000h,3_2_10_0
+	findsig -58000h,3_2_8_0
 	push	dword [esp+8]
 	call	cave_explorer
 	test	eax,eax
@@ -356,14 +356,14 @@ endp
 	call	hook_critical_part
 	cmp	[file_err],1
 	je	.done
-	findsig -4D000h:open_A8 , .exearc_open
-	findsig -08000h:open_alt, .exearc_open
-	findsig -4D000h:open_AC ,~.exearc_error
+	findsig -4D000h,open_A8 , .exearc_open
+	findsig -08000h,open_alt, .exearc_open
+	findsig -4D000h,open_AC ,,.exearc_error
 	mov	[exearc_open_AC],1
     .exearc_open:
 	mov	[EXEArc_Open],eax
-	findsig +40000h:extract , .exearc_extract
-	findsig -4D000h:extr_alt,~.exearc_error
+	findsig +40000h,extract , .exearc_extract
+	findsig -4D000h,extr_alt,,.exearc_error
 	mov	[exearc_extr_alt],1
     .exearc_extract:
 	mov	[EXEArc_Extract],eax
@@ -390,8 +390,8 @@ endp
 	push	.handler
 	push	dword [fs:0]
 	mov	[fs:0],esp
-	findsig +08000h:3_2_10_0
-	findsig +06000h:3_2_8_0
+	findsig +08000h,3_2_10_0
+	findsig +06000h,3_2_8_0
     .err:
 	pop	dword [fs:0]
 	add	esp,4
@@ -418,9 +418,9 @@ endp
 	cmp	[file_err],1
 	je	.done
 	mov	[exearc_ascii],1
-	findsig +14000h:open_A8 ,~.exearc_error
+	findsig +14000h,open_A8 ,,.exearc_error
 	mov	[EXEArc_Open],eax
-	findsig +14000h:extr_alt,~.exearc_error
+	findsig +14000h,extr_alt,,.exearc_error
 	mov	[EXEArc_Extract],eax
 	mov	[exearc_extr_alt],1
 	jmp	.done

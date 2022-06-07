@@ -3,9 +3,9 @@ include 'win32a.inc'
 
 BUFFER_SIZE = 3052
 
-macro findsig _sig,target
- { match op range:sig,_sig
-   \{ mov ecx,range
+macro findsig range,sig,success,failure
+ { match op int,range
+   \{ mov ecx,int
       mov eax,[esp+8]
       cmp [armadillo],1
       match +,op \\{ cmovnz ecx,[ frwrd_range] \\}
@@ -18,43 +18,33 @@ macro findsig _sig,target
       match +,op \\{ call  FindPattern \\}
       match -,op \\{ call RFindPattern \\}
       test eax,eax
-      match any,target
-      \\{
-	 done@target equ
-	 match ~l,any
-	 \\\{
-	    je l
-	    restore done@target
-	\\\}
-	 match :l,done@target:any
-	 \\\{
-	    jnz l
-	    restore done@target
-	 \\\}
-      \\}
-      match ,target \\{ jnz .\\#sig \\} \} }
+      if ~ success eq
+       jnz success
+      else if ~ failure eq
+       je failure
+      else
+       jnz .\#sig
+      end if \} }
 
-macro hookapi args
- { done@hookapi equ
-   match ~mod:api->func,args
-   \{ push mod
-      call [GetModuleHandle]
-      push api
-      push eax
-      call [GetProcAddress]
-      call get_cb_for_hook
-      push ecx
-      push func
-      push eax
-      call DetourFunc
-      restore done@hookapi \}
-   match :mod:api->func,done@hookapi:args
-   \{ push api
-      push mod
-      call [GetProcAddress]
-      call get_cb_for_hook
-      push ecx
-      push func
-      push eax
-      call DetourFunc
-      restore done@hookapi \} }
+macro hookapi mod,dll,api,func
+ { if ~ mod eq
+    push api
+    push mod
+    call [GetProcAddress]
+    call get_cb_for_hook
+    push ecx
+    push func
+    push eax
+    call DetourFunc
+   else
+    push dll
+    call [GetModuleHandle]
+    push api
+    push eax
+    call [GetProcAddress]
+    call get_cb_for_hook
+    push ecx
+    push func
+    push eax
+    call DetourFunc
+   end if }
