@@ -1143,6 +1143,27 @@ proc WarningProc hwnd,msg,wparam,lparam
 	push	WM_SETICON
 	push	[hwnd]
 	call	[SendMessage]
+	push	_tahoma
+	push	DEFAULT_PITCH+FF_MODERN
+	push	DEFAULT_QUALITY
+	push	CLIP_DEFAULT_PRECIS
+	push	OUT_DEFAULT_PRECIS
+	push	ANSI_CHARSET
+	push	0
+	push	0
+	push	0
+	push	FW_BOLD
+	push	0
+	push	0
+	push	0
+	push	-14
+	call	[CreateFont]
+	push	0
+	push	eax
+	push	WM_SETFONT
+	push	IDC_DISCLAIMER
+	push	[hwnd]
+	call	[SendDlgItemMessage]
 	jmp	.done
     .wm_command:
 	cmp	[wparam],IDCANCEL
@@ -1369,6 +1390,7 @@ section '.data' data readable writeable
   NO_OUTPUT    = 4
 
   _courier db 'Courier New',0
+  _tahoma db 'Tahoma',0
   _output db 'Apparently, it didn''t work..',0
   _failed db 'Something went wrong..',0
   _title db 'Exe2Aut',0
@@ -1620,11 +1642,15 @@ section '.rsrc' resource data readable
   dialog about_dialog,'',0,0,176,100,WS_POPUP
   enddialog
 
-  dialog warning_dialog,WINDOW_TITLE,0,0,316,56,WS_POPUP+WS_CAPTION+WS_SYSMENU+WS_MINIMIZEBOX+DS_CENTER,WS_EX_APPWINDOW+WS_EX_TOOLWINDOW
-    dialogitem 'button','',-1,6,29,304,1,WS_VISIBLE+BS_GROUPBOX
-    dialogitem 'static','Dropping modified or non-AutoIt files into Exe2Aut could result in harmful code being executed, so use it with caution.',-1,10,10,296,16,WS_VISIBLE
-    dialogitem 'button','Don''t show again',IDC_DONTSHOW,6,36,74,20,WS_VISIBLE+BS_FLAT+BS_AUTOCHECKBOX,
-    dialogitem 'button','OK',IDOK,270,36,40,16,WS_VISIBLE,WS_EX_STATICEDGE
+  dialog warning_dialog,WINDOW_TITLE,0,0,316,66,WS_POPUP+WS_CAPTION+WS_SYSMENU+WS_MINIMIZEBOX+DS_CENTER,WS_EX_APPWINDOW+WS_EX_TOOLWINDOW
+    dialogitem 'static','',-1,111,6,5,5,WS_VISIBLE,WS_EX_CLIENTEDGE
+    dialogitem 'static','',-1,189,6,5,5,WS_VISIBLE,WS_EX_CLIENTEDGE
+    dialogitem 'static','',-1,6,16,304,1,WS_VISIBLE+SS_SUNKEN
+    dialogitem 'static','',-1,6,41,304,1,WS_VISIBLE+SS_SUNKEN
+    dialogitem 'static','DISCLAIMER',IDC_DISCLAIMER,122,3,62,10,WS_VISIBLE
+    dialogitem 'static','Dropping modified or non-AutoIt files into Exe2Aut could result in harmful code being executed, so use it with caution. I do not take any responsibility!',-1,10,20,296,16,WS_VISIBLE
+    dialogitem 'button','Don''t show again',IDC_DONTSHOW,6,46,74,20,WS_VISIBLE+BS_FLAT+BS_AUTOCHECKBOX,
+    dialogitem 'button','OK',IDOK,270,46,40,16,WS_VISIBLE,WS_EX_STATICEDGE
   enddialog
 
   dialog crash_dialog,WINDOW_TITLE,0,0,230,80,WS_POPUP+WS_CAPTION+WS_MINIMIZEBOX+DS_CENTER
