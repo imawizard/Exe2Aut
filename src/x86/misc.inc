@@ -9,6 +9,7 @@ SCS_64BIT_BINARY     = 6
 PBS_MARQUEE	     = 8
 PBM_SETMARQUEE	     = WM_USER+10
 HTCAPTION	     = 2
+SC_DRAGMOVE	     = 0F012h
 ECM_FIRST	     = 1500h
 EM_SHOWBALLOONTIP    = ECM_FIRST+3
 
@@ -435,29 +436,82 @@ proc MakeDir
 endp
 
 proc CalcMid parent,child
-  local rect:RECT
-	lea	eax,[rect]
-	push	eax
+  local rect1:RECT,rect2:RECT
+	push	ebx esi edi
+	lea	esi,[rect1]
+	lea	edi,[rect2]
+	push	esi
 	push	[parent]
-	call	[GetClientRect]
-	shr	[rect.right],1
-	shr	[rect.bottom],1
-	lea	eax,[rect+8]
-	push	eax
-	push	[parent]
-	call	[ClientToScreen]
-	push	[rect.right]
-	push	[rect.bottom]
-	lea	eax,[rect]
-	push	eax
+	call	[GetWindowRect]
+	push	edi
 	push	[child]
-	call	[GetClientRect]
-	shr	[rect.right],1
-	shr	[rect.bottom],1
-	pop	edx
-	pop	eax
-	sub	edx,[rect.bottom]
-	sub	eax,[rect.right]
+	call	[GetWindowRect]
+	mov	eax,[esi+RECT.right]
+	mov	edx,[esi+RECT.bottom]
+	sub	eax,[esi+RECT.left]
+	sub	edx,[esi+RECT.top]
+	shr	eax,1
+	shr	edx,1
+	mov	ebx,[edi+RECT.right]
+	mov	ecx,[edi+RECT.bottom]
+	sub	ebx,[edi+RECT.left]
+	sub	ecx,[edi+RECT.top]
+	shr	ebx,1
+	shr	ecx,1
+	sub	eax,ebx
+	sub	edx,ecx
+	add	eax,[esi+RECT.left]
+	add	edx,[esi+RECT.top]
+	pop	edi esi ebx
+	ret
+endp
+
+proc CBTMsgBoxHook code,wparam,lparam
+	cmp	[code],HCBT_ACTIVATE
+	jnz	.fin
+	push	ebx
+	push	[wparam]
+	call	[GetParent]
+	test	eax,eax
+	je	.err
+	xchg	eax,ebx
+	setcenter [wparam],ebx
+    .err:
+	push	[cbtmsgboxhook]
+	call	[UnhookWindowsHookEx]
+	pop	ebx
+    .fin:
+	xor	eax,eax
+	ret
+endp
+
+proc MMessageBox hwnd,text,caption,type
+	call	[GetCurrentThreadId]
+	push	eax
+	push	0
+	push	CBTMsgBoxHook
+	push	WH_CBT
+	call	[SetWindowsHookEx]
+	mov	[cbtmsgboxhook],eax
+	mov	edx,[MessageBoxIndirect]
+	cmp	[type],-1
+	je	.skip
+	mov	edx,[MessageBox]
+	push	[type]
+	push	[caption]
+	push	[text]
+    .skip:
+	push	[hwnd]
+	call	edx
+	ret
+endp
+
+proc MMessageBoxIndirect mp
+	push	-1
+	push	0
+	push	0
+	push	[mp]
+	call	MMessageBox
 	ret
 endp
 
@@ -495,5 +549,8 @@ macro misc_udata
  {
    if used randomize | used rand | used random
     randseed rd 1
+   end if
+   if used CBTMsgBoxHook
+    cbtmsgboxhook rd 1
    end if
  }
