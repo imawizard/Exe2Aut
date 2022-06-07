@@ -247,7 +247,7 @@ proc DialogProc hwnd,msg,wparam,lparam
 	menuitem IDM_OPTIONS,_deobfu,,MF_MENUBARBREAK
 	menusep
 	menuitem IDM_ABOUT,_about
-	seticon [hwnd],IDI_NEUTRAL
+	seticon [hwnd],IDI_MAIN
 	push	_courier
 	push	DEFAULT_PITCH+FF_MODERN
 	push	DEFAULT_QUALITY
@@ -453,7 +453,7 @@ proc decompile_thread len
 	push	IDC_RESULT
 	push	[main_hwnd]
 	call	[SetDlgItemText]
-	seticon [main_hwnd],IDI_MAIN
+	seticon [main_hwnd],IDI_LAUGHING
 	pop	ecx
 	test	ecx,ecx
 	je	.finalize
@@ -1441,8 +1441,9 @@ section '.rsrc' resource data readable
   RES_PATH_END	 fix }
 
   IDI_MAIN     = 1
-  IDI_NEUTRAL  = 2
-  IDI_WARNING  = 3
+  IDI_LAUGHING = 2
+  IDI_NEUTRAL  = 3
+  IDI_WARNING  = 4
   IDR_DLL      = 5
   IDR_DLL64    = 6
   IDR_INJ64    = 7
@@ -1474,17 +1475,19 @@ section '.rsrc' resource data readable
 	    RT_VERSION,versions
 
   resource icons,\
-	   1,LANG_ENGLISH+SUBLANG_DEFAULT,icon_data,\
+	   1,LANG_ENGLISH+SUBLANG_DEFAULT,icon_data1,\
 	   2,LANG_ENGLISH+SUBLANG_DEFAULT,icon_data2,\
 	   3,LANG_ENGLISH+SUBLANG_DEFAULT,icon_data3,\
 	   4,LANG_ENGLISH+SUBLANG_DEFAULT,icon_data4,\
+	   5,LANG_ENGLISH+SUBLANG_DEFAULT,icon_data5,\
 	   IDR_DLL,LANG_ENGLISH+SUBLANG_DEFAULT,exe2autdll,\
 	   IDR_DLL64,LANG_ENGLISH+SUBLANG_DEFAULT,exe2autdll64,\
 	   IDR_INJ64,LANG_ENGLISH+SUBLANG_DEFAULT,injectdll64
 
   resource group_icons,\
 	   IDI_MAIN,LANG_ENGLISH+SUBLANG_DEFAULT,main_icon,\
-	   IDI_NEUTRAL,LANG_ENGLISH+SUBLANG_DEFAULT,other_icon,\
+	   IDI_LAUGHING,LANG_ENGLISH+SUBLANG_DEFAULT,laughing_icon,\
+	   IDI_NEUTRAL,LANG_ENGLISH+SUBLANG_DEFAULT,neutral_icon,\
 	   IDI_WARNING,LANG_ENGLISH+SUBLANG_DEFAULT,warn_icon
 
   resource dialogs,\
@@ -1503,12 +1506,11 @@ section '.rsrc' resource data readable
 
   RES_PATH_BEGIN
 
-  icon main_icon,icon_data,RES_PATH#'icon.ico',\
+  icon main_icon,icon_data1,RES_PATH#'icon.ico',\
 		 icon_data2,RES_PATH#'icon2.ico'
-
-  icon other_icon,icon_data3,RES_PATH#'icon3.ico'
-
-  icon warn_icon,icon_data4,RES_PATH#'icon4.ico'
+  icon laughing_icon,icon_data3,RES_PATH#'icon3.ico'
+  icon neutral_icon,icon_data4,RES_PATH#'icon4.ico'
+  icon warn_icon,icon_data5,RES_PATH#'icon5.ico'
 
   resdata exe2autdll
     file '../x86/Exe2AutDll.dll'
