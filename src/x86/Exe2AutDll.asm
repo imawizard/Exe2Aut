@@ -211,6 +211,88 @@ endp
     .fin:
 	retn
 
+proc cave_explorer addr
+  local f32s:fde32s,range:DWORD,found_2:BYTE
+	push	ebx esi edi
+	cmp	[armadillo],1
+	je	.err
+	mov	eax,[frwrd_range]
+	mov	[range],eax
+	mov	esi,[addr]
+    .loop1:
+	push	_size_cmp_ebx
+	push	_mask_cmp_ebx
+	push	_ptrn_cmp_ebx
+	push	[range]
+	push	esi
+	call	FindPattern
+	test	eax,eax
+	je	.err
+	add	eax,3
+	mov	ecx,eax
+	sub	eax,esi
+	mov	esi,ecx
+	sub	[range],eax
+	mov	edi,.loop2
+	mov	ebx,10
+	lea	edx,[f32s]
+    .loop2:
+	call	decode
+	movzx	eax,[edx+fde32s.len]
+	add	ecx,eax
+	mov	eax,[edx+fde32s.imm32]
+	cmp	[edx+fde32s.opcode2],085h
+	jnz	.not_found
+	test	[edx+fde32s.flags],F_IMM32
+	je	.not_found
+	test	eax,eax
+	js	.found1
+    .not_found:
+	cmp	[edx+fde32s.opcode],0E9h
+	je	.follow
+	cmp	[edx+fde32s.opcode],0EBh
+	jnz	.no_follow
+      .follow:
+	add	ecx,eax
+      .no_follow:
+	dec	ebx
+	je	.loop1
+	jmp	edi
+    .found1:
+	add	ecx,eax
+	mov	edi,.loop3
+	mov	ebx,40
+    .loop3:
+	call	decode
+	movzx	eax,[edx+fde32s.len]
+	add	ecx,eax
+	mov	eax,[edx+fde32s.imm32]
+	cmp	[edx+fde32s.opcode],08Bh
+	jnz	.not_found
+	cmp	[edx+fde32s.modrm.mod],MOD_DISP8
+	jnz	.not_found
+	test	[edx+fde32s.disp8],80h
+	js	.not_found
+	cmp	[edx+fde32s.modrm.rm],REG_ESP
+	je	.found2
+	cmp	[edx+fde32s.modrm.rm],REG_EBP
+	jnz	.not_found
+    .found2:
+	cmp	[found_2],1
+	je	.found!
+	mov	[found_2],1
+	jmp	.loop3
+    .found!:
+	xchg	eax,ecx
+	mov	cl,[edx+fde32s.modrm]
+	jmp	.fin
+    .err:
+	xor	eax,eax
+    .fin:
+	pop	edi esi ebx
+	ret
+endp
+
   MyGetCommandLineW:
 	push	_ws2_32
 	call	[GetModuleHandle]
@@ -233,6 +315,10 @@ endp
 	findsig -58000h:3_3_7_0
 	findsig -58000h:3_2_10_0
 	findsig -58000h:3_2_8_0
+	push	dword [esp+8]
+	call	cave_explorer
+	test	eax,eax
+	jnz	.hook
     .err:
 	pop	dword [fs:0]
 	add	esp,4
