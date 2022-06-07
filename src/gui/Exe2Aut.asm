@@ -1583,10 +1583,8 @@ set_status:
 	retn	4
 
 	include '../x86/misc.inc'
-	include 'deobfuscate.inc'
 	include 'gfx.inc'
-	include 'nvlist.inc'
-	include 'strhelp.inc'
+	include 'PluginManager.inc'
 	include 'Settings.inc'
 
 section '.data' data readable writeable
@@ -1675,6 +1673,7 @@ section '.data' data readable writeable
   ebt EDITBALLOONTIP sizeof.EDITBALLOONTIP,_wtitle,_compiled_macro,TTI_INFO
 
   misc_idata
+  plman_idata
   sets_idata
 
   hinstance rd 1
@@ -1711,6 +1710,7 @@ section '.data' data readable writeable
   mp MSGBOXPARAMS
 
   misc_udata
+  plman_udata
   sets_udata
 
 section '.idata' import data readable
@@ -1747,6 +1747,12 @@ section '.idata' import data readable
 	 PathStripPath,'PathStripPathA',\
 	 SHDeleteKey,'SHDeleteKeyA'
 
+
+section '.edata' export data readable
+
+  export 'Exe2Aut.EXE',\
+	 argv,'E2A_ArgV',\
+	 argc,'E2A_ArgC'
 
 section '.rsrc' resource data readable
 

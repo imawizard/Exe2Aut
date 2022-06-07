@@ -731,6 +731,10 @@ proc rename_globals src
 	sub	eax,esi
 	sub	eax,ecx
 	mov	[pos],eax
+	;cmp     byte [edx],'R'
+	;je      .loop
+	;cmp     byte [edx],'D'
+	;je      .loop
 	lea	eax,[edx+1]
 	lea	ebx,[edx+1]
 	cut_delimited eax,'(',')'
@@ -805,6 +809,10 @@ proc rename_locals src
 	mov	[pos],eax
 	cmp	byte [edx],'G'
 	je	.loop
+	;cmp     byte [edx],'R'
+	;je      .loop
+	;cmp     byte [edx],'D'
+	;je      .loop
 	lea	eax,[edx+1]
 	lea	ebx,[edx+1]
 	cut_delimited eax,'(',')'
@@ -1236,6 +1244,7 @@ macro deobfus_idata
   _fnend db 'EndFunc',0
   _fnname db '[^(]+',0
   _fnparams db '|(|[^)]*',0
+  ;_fnlocals db '[DRCGL]|[ielo][mdnoc][isba]?[mtal]?[l]? [C]?[o]?[n]?[s]?[t]?[ ]?\$|[[:word:]]+[^\r\n]*',0
   _fnlocals db '[CGL]|[lo][noc][sba][tal][l]? [C]?[o]?[n]?[s]?[t]?[ ]?\$|[[:word:]]+[^\r\n]*',0
   _fnparamsep db ', ',0
   _fnlocalsep db ', $',0

@@ -7,6 +7,12 @@ struct NVList
   _IsStringList rb 1
 ends
 
+; *****************
+; * NameValueList *
+; * NVList        *
+; *       by link *
+; *****************
+;
 ; First parameter is always SelfPtr
 ;
 ; (proc-macro is used to make FASM omit)
