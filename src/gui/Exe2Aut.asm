@@ -217,6 +217,8 @@ endp
 proc DialogProc hwnd,msg,wparam,lparam
 	cmp	[msg],WM_INITDIALOG
 	je	.wm_initdialog
+	cmp	[msg],WM_TIMER
+	je	.wm_timer
 	cmp	[msg],WM_GETMINMAXINFO
 	je	.wm_getminmaxinfo
 	cmp	[msg],WM_SYSCOMMAND
@@ -247,7 +249,7 @@ proc DialogProc hwnd,msg,wparam,lparam
 	menuitem IDM_OPTIONS,_deobfu,,MF_MENUBARBREAK
 	menusep
 	menuitem IDM_ABOUT,_about
-	seticon [hwnd],IDI_MAIN
+	seticon [hwnd],IDI_HI2U
 	push	_courier
 	push	DEFAULT_PITCH+FF_MODERN
 	push	DEFAULT_QUALITY
@@ -269,6 +271,11 @@ proc DialogProc hwnd,msg,wparam,lparam
 	push	IDC_RESULT
 	push	[hwnd]
 	call	[SendDlgItemMessage]
+	push	0
+	push	50
+	push	1
+	push	[hwnd]
+	call	[SetTimer]
 	cmp	[path],0
 	je	.done
 	push	0
@@ -278,6 +285,18 @@ proc DialogProc hwnd,msg,wparam,lparam
 	push	0
 	push	0
 	call	[CreateThread]
+	jmp	.done
+    .wm_timer:
+	cmp	[hi2u],IDI_HI2U_END
+	je	.hi2u_done
+	seticon [hwnd],[hi2u]
+	inc	[hi2u]
+	jmp	.done
+      .hi2u_done:
+	push	1
+	push	[hwnd]
+	call	[KillTimer]
+	seticon [hwnd],IDI_MAIN
 	jmp	.done
     .wm_getminmaxinfo:
 	mov	eax,[lparam]
@@ -435,7 +454,11 @@ endp
 proc decompile_thread len
 	mov	edx,[len]
 	call	decompile
-	push	ecx
+	push	ecx eax edx
+	push	1
+	push	[main_hwnd]
+	call	[KillTimer]
+	pop	edx eax
 	mov	ecx,_3264bit
 	cmp	eax,NO_3264BIT
 	je	.err
@@ -1363,6 +1386,8 @@ section '.data' data readable writeable
 
   ebt EDITBALLOONTIP sizeof.EDITBALLOONTIP,_wtitle,_compiled_macro,TTI_INFO
 
+  hi2u dd IDI_HI2U
+
   misc_idata
   deobfus_idata
   gfx_idata
@@ -1438,35 +1463,49 @@ section '.rsrc' resource data readable
 
   RES_PATH	 equ '../../res/'
   RES_PATH_BEGIN fix match RES_PATH,RES_PATH {
-  RES_PATH_END	 fix }
+  RES_PATH_END	 fix } restore RES_PATH
 
-  IDI_MAIN     = 1
-  IDI_LAUGHING = 2
-  IDI_NEUTRAL  = 3
-  IDI_WARNING  = 4
-  IDR_DLL      = 5
-  IDR_DLL64    = 6
-  IDR_INJ64    = 7
-  IDD_MAIN     = 100
-  IDD_OPTIONS  = 101
-  IDD_PROGRESS = 102
-  IDD_ABOUT    = 103
-  IDD_WARNING  = 104
-  IDD_CRASH    = 105
-  IDC_RESULT   = 1000
-  IDC_SAVE     = 1001
-  IDC_DEOBFUSC = 1002
-  IDC_SYMBOLS  = 1003
-  IDC_FILEINST = 1004
-  IDC_COMPILED = 1005
-  IDC_PROGRESS = 1006
-  IDC_DONTSHOW = 1007
-  IDC_CRASH    = 1008
-  IDC_EXIT     = 1009
-  IDM_ARMDBGB  = 2000
-  IDM_NOFILES  = 2001
-  IDM_OPTIONS  = 2002
-  IDM_ABOUT    = 2003
+  HI2U_ICONS_BEGIN fix match HI2U_ICONS,HI2U_ICONS {
+  HI2U_ICONS_END fix } rept HI2U_N { restore HI2U_ICONS }
+  HI2U_GROUP_BEGIN fix match HI2U_GROUP,HI2U_GROUP {
+  HI2U_GROUP_END fix } rept HI2U_N { restore HI2U_GROUP }
+
+  HI2U_N	 equ 44
+
+  IDI_MAIN	 = 1
+  IDI_LAUGHING	 = 2
+  IDI_NEUTRAL	 = 3
+  IDI_WARNING	 = 4
+  IDI_HI2U	 = 5
+  IDI_HI2U_END	 = IDI_HI2U+HI2U_N
+
+  IDR_DLL	 = 50
+  IDR_DLL64	 = 51
+  IDR_INJ64	 = 52
+
+  IDD_MAIN	 = 100
+  IDD_OPTIONS	 = 101
+  IDD_PROGRESS	 = 102
+  IDD_ABOUT	 = 103
+  IDD_WARNING	 = 104
+  IDD_CRASH	 = 105
+
+  IDC_RESULT	 = 1000
+  IDC_SAVE	 = 1001
+  IDC_DEOBFUSC	 = 1002
+  IDC_SYMBOLS	 = 1003
+  IDC_FILEINST	 = 1004
+  IDC_COMPILED	 = 1005
+  IDC_PROGRESS	 = 1006
+  IDC_DISCLAIMER = 1007
+  IDC_DONTSHOW	 = 1008
+  IDC_CRASH	 = 1009
+  IDC_EXIT	 = 1010
+
+  IDM_ARMDBGB	 = 2000
+  IDM_NOFILES	 = 2001
+  IDM_OPTIONS	 = 2002
+  IDM_ABOUT	 = 2003
 
   directory RT_ICON,icons,\
 	    RT_GROUP_ICON,group_icons,\
@@ -1474,21 +1513,37 @@ section '.rsrc' resource data readable
 	    RT_MANIFEST,manifests,\
 	    RT_VERSION,versions
 
+  HI2U_ICONS equ
+  rept HI2U_N i:6,n
+   { match any,HI2U_ICONS \{ HI2U_ICONS equ HI2U_ICONS,i,LANG_ENGLISH+SUBLANG_DEFAULT,hi2u_data#n \}
+     match ,HI2U_ICONS \{ HI2U_ICONS equ i,LANG_ENGLISH+SUBLANG_DEFAULT,hi2u_data#n \} }
+
+  HI2U_ICONS_BEGIN
   resource icons,\
 	   1,LANG_ENGLISH+SUBLANG_DEFAULT,icon_data1,\
 	   2,LANG_ENGLISH+SUBLANG_DEFAULT,icon_data2,\
 	   3,LANG_ENGLISH+SUBLANG_DEFAULT,icon_data3,\
 	   4,LANG_ENGLISH+SUBLANG_DEFAULT,icon_data4,\
 	   5,LANG_ENGLISH+SUBLANG_DEFAULT,icon_data5,\
+	   HI2U_ICONS,\
 	   IDR_DLL,LANG_ENGLISH+SUBLANG_DEFAULT,exe2autdll,\
 	   IDR_DLL64,LANG_ENGLISH+SUBLANG_DEFAULT,exe2autdll64,\
 	   IDR_INJ64,LANG_ENGLISH+SUBLANG_DEFAULT,injectdll64
+  HI2U_ICONS_END
 
+  HI2U_GROUP equ
+  rept HI2U_N i:0,n
+   { match any,HI2U_GROUP \{ HI2U_GROUP equ HI2U_GROUP,IDI_HI2U+i,LANG_ENGLISH+SUBLANG_DEFAULT,hi2u_icon#n \}
+     match ,HI2U_GROUP \{ HI2U_GROUP equ IDI_HI2U+i,LANG_ENGLISH+SUBLANG_DEFAULT,hi2u_icon#n \} }
+
+  HI2U_GROUP_BEGIN
   resource group_icons,\
 	   IDI_MAIN,LANG_ENGLISH+SUBLANG_DEFAULT,main_icon,\
 	   IDI_LAUGHING,LANG_ENGLISH+SUBLANG_DEFAULT,laughing_icon,\
 	   IDI_NEUTRAL,LANG_ENGLISH+SUBLANG_DEFAULT,neutral_icon,\
-	   IDI_WARNING,LANG_ENGLISH+SUBLANG_DEFAULT,warn_icon
+	   IDI_WARNING,LANG_ENGLISH+SUBLANG_DEFAULT,warn_icon,\
+	   HI2U_GROUP
+  HI2U_GROUP_END
 
   resource dialogs,\
 	   IDD_MAIN,LANG_ENGLISH+SUBLANG_DEFAULT,main_dialog,\
@@ -1511,6 +1566,8 @@ section '.rsrc' resource data readable
   icon laughing_icon,icon_data3,RES_PATH#'icon3.ico'
   icon neutral_icon,icon_data4,RES_PATH#'icon4.ico'
   icon warn_icon,icon_data5,RES_PATH#'icon5.ico'
+  rept HI2U_N n
+  \{ icon hi2u_icon\#n,hi2u_data\#n,RES_PATH#'hi2u/'\#\`n\#'.ico' \}
 
   resdata exe2autdll
     file '../x86/Exe2AutDll.dll'
