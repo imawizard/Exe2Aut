@@ -573,17 +573,16 @@ endp
     .start:
 	STATUS	_decompiling
 	mov	[_si.cb],sizeof.STARTUPINFO
-	xor	eax,eax
 	push	_pi
 	push	_si
-	push	eax
-	push	eax
+	push	0
+	push	0
 	push	CREATE_SUSPENDED
-	push	eax
-	push	eax
-	push	eax
+	push	0
+	push	0
+	push	0
 	push	path
-	push	eax
+	push	0
 	call	[CreateProcess]
 	mov	ecx,NO_PROCESS
 	test	eax,eax
@@ -608,10 +607,9 @@ endp
 	call	LoadResfile
 	mov	ecx,[esp]
 	add	esp,4
-	mov	edx,[esp]
 	push	ecx
 	push	eax
-	push	edx
+	push	dword [esp+8]
 	call	[_lwrite]
 	call	[_lclose]
 	test	edi,edi
@@ -673,17 +671,16 @@ endp
 	call	[strcat]
 	add	esp,8
 	mov	[_si2.cb],sizeof.STARTUPINFO
-	xor	eax,eax
 	push	_pi2
 	push	_si2
-	push	eax
-	push	eax
-	push	eax
-	push	eax
-	push	eax
-	push	eax
+	push	0
+	push	0
+	push	0
+	push	0
+	push	0
+	push	0
 	push	inj64
-	push	eax
+	push	0
 	call	[CreateProcess]
 	push	-1
 	push	[_pi2.hProcess]
