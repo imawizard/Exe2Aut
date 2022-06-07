@@ -6,14 +6,20 @@ macro STATUS status
    call set_status }
 
 macro seticon hwnd,id
- { push 0
-   call [GetModuleHandle]
+ { if ~ defined hinstance
+    push 0
+    call [GetModuleHandle]
+   end if
    push 0
    push 16
    push 16
    push IMAGE_ICON
    push id
-   push eax
+   if ~ defined hinstance
+    push eax
+   else
+    push [hinstance]
+   end if
    call [LoadImage]
    push eax
    push 0

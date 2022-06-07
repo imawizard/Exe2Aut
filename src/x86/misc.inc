@@ -171,7 +171,7 @@ proc RFindPattern
 	retn	14h
 endp
 
-proc alloc_base address
+proc get_alloc_base address
   local mbi:MEMORY_BASIC_INFORMATION
 	lea	eax,[mbi]
 	push	sizeof.MEMORY_BASIC_INFORMATION
@@ -182,7 +182,7 @@ proc alloc_base address
 	ret
 endp
 
-proc alloc_size address
+proc get_alloc_size address
   local mbi:MEMORY_BASIC_INFORMATION
 	push	ebx esi
 	lea	eax,[mbi]
@@ -317,22 +317,17 @@ proc InjectDll pid,dll
 	push	ebx
 	push	edi
 	call	[WriteProcessMemory]
-	call	.kernel32
-	db 'kernel32',0
-      .kernel32:
+	push	.kernel32
 	call	[GetModuleHandle]
-	call	.loadlibrary
-	db 'LoadLibraryA',0
-      .loadlibrary:
+	push	.loadlibrary
 	push	eax
 	call	[GetProcAddress]
-	xor	ecx,ecx
-	push	ecx
-	push	ecx
+	push	0
+	push	0
 	push	ebx
 	push	eax
-	push	ecx
-	push	ecx
+	push	0
+	push	0
 	push	edi
 	call	[CreateRemoteThread]
 	xor	esi,esi
@@ -368,6 +363,9 @@ proc InjectDll pid,dll
     .fin:
 	pop	edi esi ebx
 	ret
+
+  .kernel32 db 'kernel32',0
+  .loadlibrary db 'LoadLibraryA',0
 endp
 
 proc LoadResfile name,type,size
@@ -495,5 +493,7 @@ macro misc_idata
 
 macro misc_udata
  {
-   randseed rd 1
+   if used randomize | used rand | used random
+    randseed rd 1
+   end if
  }

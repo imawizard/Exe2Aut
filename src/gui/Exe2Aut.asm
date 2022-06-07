@@ -60,18 +60,18 @@ section '.code' code readable executable
 	mov	word [path],0100h
 	jmp	.next
       .armadillo:
-	push	_armmutex
+	push	_armamutex
 	push	0
 	push	0
 	call	[CreateMutex]
-	mov	[armmutex],eax
+	mov	[armamutex],eax
 	jmp	.next
       .nofiles:
-	push	_nfimutex
+	push	_nofimutex
 	push	0
 	push	0
 	call	[CreateMutex]
-	mov	[nfimutex],eax
+	mov	[nofimutex],eax
 	jmp	.next
       .nogui:
 	mov	[no_gui],1

@@ -17,8 +17,10 @@ section '.code' code readable executable
 	cmp	[argc],3
 	jnz	.fin
 	lea	rsi,[rax+8]
+	mov	r8d,10
+	xor	edx,edx
 	mov	rcx,[rsi+8]
-	call	[wtoi]
+	call	[wcstol]
 	mov	rdx,[rsi]
 	mov	ecx,eax
 	call	InjectDll
@@ -130,4 +132,4 @@ section '.idata' import data readable
 	 CommandLineToArgvW,'CommandLineToArgvW'
 
   import msvcrt,\
-	 wtoi,'_wtoi'
+	 wcstol,'wcstol'

@@ -203,7 +203,7 @@ endp
 	sub	ecx,eax
 	mov	[bckwrd_range],ecx
 	push	ebx
-	call	alloc_size
+	call	get_alloc_size
 	sub	ebx,edx
 	sub	eax,ebx
 	mov	[frwrd_range],eax
@@ -298,7 +298,7 @@ endp
 	call	[GetModuleHandle]
 	push	eax
 	push	dword [esp+4]
-	call	alloc_base
+	call	get_alloc_base
 	pop	ecx
 	cmp	ecx,eax
 	je	.already
@@ -383,7 +383,7 @@ endp
 	cmp	[already],1
 	je	.already
 	push	eax
-	call	alloc_base
+	call	get_alloc_base
 	mov	edx,[esp]
 	call	get_frwrd_bckwrd_range
 	call	filename
@@ -1244,6 +1244,7 @@ section '.idata' import data readable
 	 CharLower,'CharLowerA'
 
   import msvcrt,\
+	 memcpy,'memcpy',\
 	 sprintf,'sprintf',\
 	 strcmp,'strcmp',\
 	 strcpy,'strcpy',\
